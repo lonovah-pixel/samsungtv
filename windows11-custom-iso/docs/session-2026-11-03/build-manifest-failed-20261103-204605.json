@@ -1,0 +1,13 @@
+{
+  "buildId": "20261103-204605",
+  "startedAt": "2026-11-03T20:46:05",
+  "host": "vm",
+  "backend": "Linux",
+  "config": "config.json",
+  "error": "No source ISO configured. Set source.downloadUrl (ru-ru x64 consumer ISO link from the Genuine Installation Media page https://massgrave.dev/genuine-installation-media) or source.localIsoPath (ISO from https://www.microsoft.com/ru-ru/software-download/windows11), and source.expectedSha256 (hash published by Microsoft for that file).",
+  "finishedAt": "2026-11-03T20:46:05",
+  "success": false,
+  "warnings": [
+    "Linux fallback backend: DISM and Oscdimg are not used; result is not equivalent to the reference Windows pipeline."
+  ]
+}

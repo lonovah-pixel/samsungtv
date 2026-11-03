@@ -1,0 +1,13 @@
+# Large/generated content - never commit
+/work/
+/work-synthetic/
+/downloads/*
+!/downloads/.gitkeep
+/logs/*
+!/logs/.gitkeep
+/output/*
+!/output/.gitkeep
+*.iso
+*.wim
+*.esd
+*.swm

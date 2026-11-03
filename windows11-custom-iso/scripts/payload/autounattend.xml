@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  CustomImage answer file. Intentionally minimal:
+  - NO windowsPE settings: language, edition, product key and DISK SELECTION stay interactive.
+  - NO accounts, passwords, auto-logon, product keys or TPM/Secure Boot/online-account bypasses.
+  - Only one specialize-pass command that registers the post-install startup task
+    (fallback for the case when SetupComplete.cmd is not executed by Setup).
+-->
+<unattend xmlns="urn:schemas-microsoft-com:unattend" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
+  <settings pass="specialize">
+    <component name="Microsoft-Windows-Deployment" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+      <RunSynchronous>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>1</Order>
+          <Description>CustomImage: register post-install task</Description>
+          <Path>cmd.exe /c "%WINDIR%\Setup\Scripts\CustomImage\Register.cmd"</Path>
+        </RunSynchronousCommand>
+      </RunSynchronous>
+    </component>
+  </settings>
+</unattend>

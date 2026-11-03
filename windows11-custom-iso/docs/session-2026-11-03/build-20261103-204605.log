@@ -1,0 +1,22 @@
+2026-11-03 20:46:05 [INFO] Log file: /home/user/samsungtv/windows11-custom-iso/logs/build-20261103-204605.log
+2026-11-03 20:46:05 [STEP] Environment check
+2026-11-03 20:46:05 [INFO]   OS                                       info   Ubuntu 24.04.5 LTS (X64)
+2026-11-03 20:46:05 [INFO]   Root                                     info   uid=0 (not required for the Linux backend)
+2026-11-03 20:46:05 [INFO]   DISM / Windows ADK                       warn   not available on Linux
+2026-11-03 20:46:05 [INFO]   WSL                                      info   False
+2026-11-03 20:46:05 [INFO]   Free space                               ok     29.8 GB (need >= 25)
+2026-11-03 20:46:05 [INFO]   wimlib-imagex                            ok     /usr/bin/wimlib-imagex wimlib-imagex 1.14.4-1.1build2 (using wimlib 1.14.4-1.1build2)
+2026-11-03 20:46:05 [INFO]   xorriso                                  ok     /usr/bin/xorriso xorriso 1.5.6 : RockRidge filesystem manipulator, libburnia project.
+2026-11-03 20:46:05 [INFO]   7z                                       ok     /usr/bin/7z
+2026-11-03 20:46:05 [INFO]   curl                                     ok     /usr/bin/curl
+2026-11-03 20:46:05 [INFO]   osslsigncode                             ok     /usr/bin/osslsigncode
+2026-11-03 20:46:05 [INFO]   KVM (/dev/kvm)                           warn   False
+2026-11-03 20:46:05 [INFO]   CPU virtualization flags (vmx/svm)       info   False
+2026-11-03 20:46:05 [INFO]   qemu-system-x86_64 / swtpm               info   False / False
+2026-11-03 20:46:05 [WARN]   No hardware virtualization: a Windows install test in a VM (UEFI + Secure Boot + TPM) is not possible here.
+2026-11-03 20:46:05 [WARN]   Linux backend deviates from the reference pipeline: no DISM, ISO built with xorriso instead of Oscdimg, install.wim split into SWM parts (ISO9660/Joliet has a 4 GiB per-file limit).
+2026-11-03 20:46:05 [WARN] Linux fallback backend: DISM and Oscdimg are not used; result is not equivalent to the reference Windows pipeline.
+2026-11-03 20:46:05 [STEP] Source ISO
+2026-11-03 20:46:05 [ERROR] BUILD FAILED: No source ISO configured. Set source.downloadUrl (ru-ru x64 consumer ISO link from the Genuine Installation Media page https://massgrave.dev/genuine-installation-media) or source.localIsoPath (ISO from https://www.microsoft.com/ru-ru/software-download/windows11), and source.expectedSha256 (hash published by Microsoft for that file).
+2026-11-03 20:46:05 [ERROR]   at At /home/user/samsungtv/windows11-custom-iso/build.ps1:118 char:9
+2026-11-03 20:46:05 [INFO] Manifest: /home/user/samsungtv/windows11-custom-iso/logs/build-manifest-failed-20261103-204605.json

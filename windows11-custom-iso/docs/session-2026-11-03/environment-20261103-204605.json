@@ -1,0 +1,79 @@
+{
+  "Timestamp": "2026-11-03T20:46:05",
+  "Backend": "Linux",
+  "Ready": true,
+  "FreeGB": 29.8,
+  "OscdimgPath": null,
+  "Checks": [
+    {
+      "Check": "OS",
+      "Value": "Ubuntu 24.04.5 LTS (X64)",
+      "State": "info"
+    },
+    {
+      "Check": "Root",
+      "Value": "uid=0 (not required for the Linux backend)",
+      "State": "info"
+    },
+    {
+      "Check": "DISM / Windows ADK",
+      "Value": "not available on Linux",
+      "State": "warn"
+    },
+    {
+      "Check": "WSL",
+      "Value": "False",
+      "State": "info"
+    },
+    {
+      "Check": "Free space",
+      "Value": "29.8 GB (need >= 25)",
+      "State": "ok"
+    },
+    {
+      "Check": "wimlib-imagex",
+      "Value": "/usr/bin/wimlib-imagex wimlib-imagex 1.14.4-1.1build2 (using wimlib 1.14.4-1.1build2)",
+      "State": "ok"
+    },
+    {
+      "Check": "xorriso",
+      "Value": "/usr/bin/xorriso xorriso 1.5.6 : RockRidge filesystem manipulator, libburnia project.",
+      "State": "ok"
+    },
+    {
+      "Check": "7z",
+      "Value": "/usr/bin/7z",
+      "State": "ok"
+    },
+    {
+      "Check": "curl",
+      "Value": "/usr/bin/curl",
+      "State": "ok"
+    },
+    {
+      "Check": "osslsigncode",
+      "Value": "/usr/bin/osslsigncode",
+      "State": "ok"
+    },
+    {
+      "Check": "KVM (/dev/kvm)",
+      "Value": "False",
+      "State": "warn"
+    },
+    {
+      "Check": "CPU virtualization flags (vmx/svm)",
+      "Value": "False",
+      "State": "info"
+    },
+    {
+      "Check": "qemu-system-x86_64 / swtpm",
+      "Value": "False / False",
+      "State": "info"
+    }
+  ],
+  "Issues": [],
+  "Warnings": [
+    "No hardware virtualization: a Windows install test in a VM (UEFI + Secure Boot + TPM) is not possible here.",
+    "Linux backend deviates from the reference pipeline: no DISM, ISO built with xorriso instead of Oscdimg, install.wim split into SWM parts (ISO9660/Joliet has a 4 GiB per-file limit)."
+  ]
+}
