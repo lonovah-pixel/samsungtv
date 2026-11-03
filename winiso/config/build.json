@@ -2,14 +2,15 @@
   "_readme": "Основная конфигурация сборки. Значения null — обязательные параметры, которые ещё не указаны: сборка остановится, а режим плана (-PlanOnly) перечислит их. Подробности в README.md.",
   "schema": 1,
   "source": {
-    "iso_path": null,
+    "iso_path": "D:\\iso\\",
+    "_iso_path": "Файл ISO или папка. Для папки берётся единственный ISO по шаблону iso_name_filter; если подходящих несколько — сборка остановится и попросит полный путь. Официальный ISO: https://www.microsoft.com/ru-ru/software-download/windows11 → «Загрузка образа диска (ISO)».",
+    "iso_name_filter": "Win11*.iso",
     "iso_sha256": null,
-    "_iso_sha256": "Необязательно. Если указан, оригинал сверяется с ним (например, с хэшем из Visual Studio Subscriptions / страницы загрузки Microsoft).",
-    "_iso_path": "Официальный ISO: https://www.microsoft.com/ru-ru/software-download/windows11 → «Загрузка образа диска (ISO)» → Windows 11 (multi-edition ISO). SHA-256 показывается там же после выбора языка — впишите его в iso_sha256."
+    "_iso_sha256": "Необязательно. Если указан, оригинал сверяется с ним (например, с хэшем из Visual Studio Subscriptions / страницы загрузки Microsoft)."
   },
   "target": {
-    "windows": "Windows 11 (Домашняя + Pro)",
-    "_windows": "Только для отчёта. Исходный образ — официальный многоредакционный ISO Windows 11 (consumer) с сайта Microsoft.",
+    "windows": "Windows 11 26H2 (Домашняя + Pro)",
+    "_windows": "Только для отчёта. Текущий выпуск на microsoft.com на 2026-11-03 — 26H2 (официальный многоредакционный ISO).",
     "editions": [
       "Core",
       "Professional"
@@ -21,13 +22,13 @@
     "volume_label": "WIN11_CUSTOM"
   },
   "paths": {
-    "work_dir": null,
-    "_work_dir": "Папка проекта и рабочих файлов. Нужно ~25 ГБ свободного места на NTFS. Не корень диска.",
-    "output_iso": null,
-    "_output_iso": "Полный путь к готовому ISO, например D:\\WinBuild\\out\\Win11_Pro_ru-RU_custom.iso",
+    "work_dir": "C:\\WinBuild",
+    "_work_dir": "Рабочая папка на NTFS (~25 ГБ). НЕ на флешке Ventoy (exFAT): сборка откажется. Значение по умолчанию — поменяйте при необходимости.",
+    "output_iso": "C:\\WinBuild\\out\\Win11_HomePro_ru-RU_custom.iso",
+    "_output_iso": "Готовый ISO. На флешку D: его копирует scripts\\Install-ToVentoy.ps1 -Iso (с подтверждением и проверкой SHA-256).",
     "installers_cache": "cache\\installers",
     "drivers_dir": null,
-    "_drivers_dir": "Необязательно: папка с .inf драйверами (например, Intel RST/VMD или сетевыми) для целевого ПК. Добавляются в install.wim и boot.wim."
+    "_drivers_dir": "Драйверы не нужны (по вашему ответу). Необязательно: папка с .inf драйверами."
   },
   "tools": {
     "oscdimg": "C:\\Program Files (x86)\\Windows Kits\\10\\Assessment and Deployment Kit\\Deployment Tools\\amd64\\Oscdimg\\oscdimg.exe",

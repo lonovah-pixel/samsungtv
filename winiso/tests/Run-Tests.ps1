@@ -55,7 +55,11 @@ try {
     # 2. Текущая конфигурация: неполная, это ожидаемо до ответов пользователя
     $cfg = Import-WinIsoConfig (Join-Path $Root 'config/build.json')
     $p = Get-WinIsoConfigProblems $cfg
-    Assert 'Текущий build.json: обнаружены незаполненные параметры' { @($p | Where-Object { $_ -like '*source.iso_path*' }).Count -eq 1 -and @($p | Where-Object { $_ -like '*work_dir*' }).Count -eq 1 -and @($p | Where-Object { $_ -like '*editions*' }).Count -eq 0 }
+    Assert 'Пустой source.iso_path — обнаруживается' {
+        $c = Import-WinIsoConfig (New-TestConfig { param($d) Edit-Json "$d/build.json" { param($j) $j.source.iso_path = $null; $j.paths.work_dir = $null } })
+        $q = Get-WinIsoConfigProblems $c
+        @($q | Where-Object { $_ -like '*source.iso_path*' }).Count -eq 1 -and @($q | Where-Object { $_ -like '*work_dir*' }).Count -eq 1
+    }
 
     # 3. Полная тестовая конфигурация проходит
     $ok = Import-WinIsoConfig (New-TestConfig)
@@ -112,6 +116,18 @@ try {
         Throws { Get-WinIsoAppPlan $c } '*только имя файла*'
     }
 
+    # 4b. Выбор ISO из папки
+    $isoDir = Join-Path $tmp 'isodir'; New-Item -ItemType Directory -Path $isoDir | Out-Null
+    Assert 'Папка без ISO — понятная ошибка' { Throws { Resolve-WinIsoSourceIso $isoDir } '*нет ISO*' }
+    Set-Content (Join-Path $isoDir 'ubuntu.iso') 'x'
+    Assert 'Чужой ISO не выбирается' { Throws { Resolve-WinIsoSourceIso $isoDir } '*ubuntu.iso*' }
+    Set-Content (Join-Path $isoDir 'Win11_25H2_Russian_x64.iso') 'x'
+    Assert 'Единственный Win11*.iso выбирается' { (Split-Path -Leaf (Resolve-WinIsoSourceIso $isoDir)) -eq 'Win11_25H2_Russian_x64.iso' }
+    Set-Content (Join-Path $isoDir 'Win11_24H2_Russian_x64.iso') 'x'
+    Assert 'Несколько Win11*.iso — остановка со списком' { Throws { Resolve-WinIsoSourceIso $isoDir } '*несколько*' }
+    Assert 'Полный путь к файлу работает' { (Split-Path -Leaf (Resolve-WinIsoSourceIso (Join-Path $isoDir 'Win11_24H2_Russian_x64.iso'))) -eq 'Win11_24H2_Russian_x64.iso' }
+    Assert 'Рабочий build.json: конфигурация полная' { (Get-WinIsoConfigProblems (Import-WinIsoConfig (Join-Path $Root 'config/build.json'))).Count -eq 0 }
+
     # 5. Файл ответов
     $xmlText = (Get-Content (Join-Path $Root 'unattend/autounattend.template.xml') -Raw).Replace('{{ARCH}}', 'amd64').Replace('{{FIRST_LOGON_SCRIPT}}', 'C:\ProgramData\WinIsoDeploy\Deploy-Apps.ps1')
     Assert 'autounattend: корректный XML, только oobeSystem' { [xml]$x = $xmlText; (@($x.unattend.settings).pass -join ',') -eq 'oobeSystem' }
@@ -122,7 +138,8 @@ try {
     # 6. Режим плана (не требует Windows)
     $pw = (Get-Process -Id $PID).Path
     Assert 'Build-WinIso -PlanOnly: неполная конфигурация → код 2' {
-        & $pw -NoProfile -File (Join-Path $Root 'scripts/Build-WinIso.ps1') -PlanOnly *> $null; $LASTEXITCODE -eq 2
+        $cp = New-TestConfig { param($d) Edit-Json "$d/build.json" { param($j) $j.paths.output_iso = $null } }
+        & $pw -NoProfile -File (Join-Path $Root 'scripts/Build-WinIso.ps1') -PlanOnly -ConfigPath $cp *> $null; $LASTEXITCODE -eq 2
     }
     Assert 'Build-WinIso -PlanOnly: полная конфигурация → код 0' {
         & $pw -NoProfile -File (Join-Path $Root 'scripts/Build-WinIso.ps1') -PlanOnly -ConfigPath (New-TestConfig) *> $null; $LASTEXITCODE -eq 0

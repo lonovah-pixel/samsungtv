@@ -97,6 +97,14 @@ class VentoyBannerTests(unittest.TestCase):
         vb.rollback(self.root, bdir.name)
         self.assertEqual({k: v for k, v in tree_digest(self.root).items() if not k.startswith(vb.BACKUP_DIR_REL)}, before)
 
+    def test_dark_detection_without_pillow(self):
+        dark = write_png(self.tmp / "dark.png", w=64, h=48, rgb=(10, 10, 10))
+        light = write_png(self.tmp / "light.png", w=64, h=48, ctype=6, rgb=(240, 240, 240))
+        self.assertTrue(vb._bottom_is_dark_stdlib(dark))
+        self.assertFalse(vb._bottom_is_dark_stdlib(light))
+        self.assertTrue(vb._bottom_is_dark_stdlib(vb.HERE / "draft-banner.png"))
+        self.assertFalse(vb._bottom_is_dark_stdlib(vb.BASE_THEME / "background.png"))
+
     def test_relative_theme_path_resolution(self):
         self.assertEqual(vb.resolve_theme_path(self.root, "t/theme.txt"), self.root / "ventoy" / "t" / "theme.txt")
         self.assertEqual(vb.resolve_theme_path(self.root, "/x/theme.txt"), self.root / "x" / "theme.txt")

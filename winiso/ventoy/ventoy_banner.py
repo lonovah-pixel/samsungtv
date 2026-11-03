@@ -30,6 +30,7 @@ import shutil
 import struct
 import subprocess
 import sys
+import zlib
 from collections import OrderedDict
 from pathlib import Path
 
@@ -76,13 +77,57 @@ def bottom_is_dark(banner: Path):
     try:
         from PIL import Image
     except ImportError:
-        return None
+        return _bottom_is_dark_stdlib(banner)
     with Image.open(banner) as im:
         g = im.convert("L")
         w, h = g.size
         strip = g.crop((0, int(h * 0.90), w, h)).resize((64, 8))
         data = strip.tobytes()
     return sum(data) / len(data) < 110
+
+
+def _bottom_is_dark_stdlib(banner: Path):
+    """То же без Pillow: декодирование 8-битного RGB/RGBA PNG средствами zlib."""
+    info = png_info(banner)
+    if info["problems"]:
+        return None
+    raw = banner.read_bytes()
+    pos, idat = 8, bytearray()
+    while pos < len(raw):
+        ln, typ = struct.unpack(">I4s", raw[pos:pos + 8])
+        if typ == b"IDAT":
+            idat += raw[pos + 8:pos + 8 + ln]
+        pos += 12 + ln
+    data = zlib.decompress(bytes(idat))
+    w, h = info["width"], info["height"]
+    bpp = 3 if info["color_type"] == 2 else 4
+    stride = w * bpp
+    prev = bytearray(stride)
+    total = count = 0
+    start_row = int(h * 0.90)
+    for y in range(h):
+        f = data[y * (stride + 1)]
+        row = bytearray(data[y * (stride + 1) + 1:(y + 1) * (stride + 1)])
+        for i in range(stride):
+            a_ = row[i - bpp] if i >= bpp else 0
+            b_ = prev[i]
+            c_ = prev[i - bpp] if i >= bpp else 0
+            if f == 1:
+                row[i] = (row[i] + a_) & 255
+            elif f == 2:
+                row[i] = (row[i] + b_) & 255
+            elif f == 3:
+                row[i] = (row[i] + ((a_ + b_) >> 1)) & 255
+            elif f == 4:
+                pa, pb, pc = abs(b_ - c_), abs(a_ - c_), abs(a_ + b_ - 2 * c_)
+                row[i] = (row[i] + (a_ if pa <= pb and pa <= pc else b_ if pb <= pc else c_)) & 255
+        if y >= start_row:
+            for x in range(0, stride, bpp * 16):
+                r, g, bl = row[x], row[x + 1], row[x + 2]
+                total += 0.299 * r + 0.587 * g + 0.114 * bl
+                count += 1
+        prev = row
+    return (total / count) < 110 if count else None
 
 
 def read_json_strict(path: Path):

@@ -83,15 +83,20 @@ function Show-Plan {
 
 if ($PlanOnly) {
     Show-Plan
-    if ($IsWin -and $b.source.iso_path -and (Test-Path -LiteralPath $b.source.iso_path)) {
+    $planIso = $null
+    if ($b.source.iso_path) {
+        try { $planIso = Resolve-WinIsoSourceIso $b.source.iso_path (Get-WinIsoProp $b.source 'iso_name_filter' 'Win11*.iso'); Write-WinIsoLog "Найден исходный ISO: $planIso" 'OK' }
+        catch { Write-WinIsoLog $_.Exception.Message 'WARN' }
+    }
+    if ($IsWin -and $planIso) {
         Write-WinIsoLog '--- Редакции в ISO (только чтение)' 'STEP'
         $img = $null
         try {
-            $img = Mount-DiskImage -ImagePath $b.source.iso_path -Access ReadOnly -StorageType ISO -PassThru
+            $img = Mount-DiskImage -ImagePath $planIso -Access ReadOnly -StorageType ISO -PassThru
             $letter = ($img | Get-Volume).DriveLetter
             $wim = @("${letter}:\sources\install.wim", "${letter}:\sources\install.esd") | Where-Object { Test-Path $_ } | Select-Object -First 1
             Get-WindowsImage -ImagePath $wim | ForEach-Object { $x = Get-WindowsImage -ImagePath $wim -Index $_.ImageIndex; Write-WinIsoLog ("  Index {0}: {1} [EditionId={2}] {3}" -f $x.ImageIndex, $x.ImageName, $x.EditionId, $(if (@($t.editions) -contains $x.EditionId) { '← выбрана' } else { '' })) 'PLAN' }
-        } finally { if ($img) { Dismount-DiskImage -ImagePath $b.source.iso_path | Out-Null } }
+        } finally { if ($img) { Dismount-DiskImage -ImagePath $planIso | Out-Null } }
     }
     exit ([int]($problems.Count -gt 0) * 2)
 }
@@ -218,8 +223,12 @@ try {
     Write-WinIsoLog '=== 1. Предварительные проверки ===' 'STEP'
     foreach ($tool in @($Dism, $Oscdimg)) { if (-not (Get-Command $tool -ErrorAction SilentlyContinue)) { throw "Не найден инструмент: $tool (установите Windows ADK → Deployment Tools)" } }
     if (-not (Get-Module -ListAvailable -Name Dism)) { throw 'Модуль PowerShell DISM недоступен.' }
-    $src = $b.source.iso_path
-    if (-not (Test-Path -LiteralPath $src)) { throw "Оригинальный ISO не найден: $src" }
+    $src = Resolve-WinIsoSourceIso $b.source.iso_path (Get-WinIsoProp $b.source 'iso_name_filter' 'Win11*.iso')
+    Write-WinIsoLog "Исходный ISO: $src"
+    $srcRoot = [IO.Path]::GetPathRoot($src); $workRoot = [IO.Path]::GetPathRoot([IO.Path]::GetFullPath($Work))
+    if ($srcRoot -eq $workRoot -and (Get-Volume -DriveLetter $srcRoot.Substring(0, 1)).FileSystem -ne 'NTFS') {
+        throw "Рабочая папка на том же не-NTFS томе, что и ISO ($srcRoot, вероятно флешка Ventoy). Укажите work_dir на NTFS-диске, например C:\WinBuild."
+    }
     New-Item -ItemType Directory -Force -Path $Work, (Split-Path $OutIso), (Split-Path $SrcCopy), $Cache | Out-Null
     $fs = (Get-Volume -DriveLetter ([IO.Path]::GetPathRoot($Work).Substring(0, 1))).FileSystem
     if ($fs -ne 'NTFS') { throw "Рабочая папка должна быть на NTFS (сейчас $fs)." }

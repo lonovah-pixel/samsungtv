@@ -20,12 +20,24 @@ Windows своим ключом или цифровой лицензией (на
 | Параметр | Куда |
 |---|---|
 | Версия Windows, редакции (`EditionId`: `Core` = Домашняя, `Professional` = Pro), язык, архитектура | `target.*` |
-| Путь к оригинальному ISO (+ по желанию эталонный SHA-256) | `source.iso_path`, `source.iso_sha256` |
+| Путь к оригинальному ISO или папке (сейчас `D:\iso\`) + по желанию эталонный SHA-256 | `source.iso_path`, `source.iso_sha256` |
 | Рабочая папка (NTFS, ≥ 25 ГБ) и путь к готовому ISO | `paths.work_dir`, `paths.output_iso` |
 | Назначение ПК и железо (нужны ли драйверы RST/VMD/сеть) | `paths.drivers_dir` |
 | Список программ; какие нужны без интернета | `config/apps.json` (формат: `apps.example.json`) |
 | Какие приложения Windows убрать сверх консервативного набора | `optimization.user_extra_appx_remove` / `appx-remove.json` |
 | Флешка Ventoy (буква/точка монтирования) и картинка или описание баннера | `ventoy_banner.py` |
+
+## Чем и что собирать (рекомендация)
+
+* **Версия Windows:** текущий выпуск с microsoft.com — на 2026-11-03 это **Windows 11 26H2**, многоредакционный ISO
+  (Домашняя и Pro в одном файле), язык «Русский», x64. Положите его в `D:\iso\` (имя вида `Win11_26H2_Russian_x64.iso`)
+  — сборка найдёт его сама; если там несколько `Win11*.iso`, попросит указать файл.
+* **Чем собирать:** обычный ПК с **Windows 11** (желательно 24H2 или новее, со всеми обновлениями), **Windows ADK**
+  последней версии с learn.microsoft.com (при установке достаточно галочки **Deployment Tools**), PowerShell
+  «от имени администратора». Сторонние программы-«сборщики» не нужны и не используются: DISM и oscdimg — штатные
+  инструменты Microsoft. Если ADK предупредит о версии образа новее системы — укажите в `tools.dism` DISM из ADK.
+* **Где:** рабочая папка `C:\WinBuild` (NTFS, ≥ 25 ГБ свободно). Не на флешке: Ventoy-раздел — exFAT, сборка там откажется.
+* **На флешку D:** готовый ISO и баннер записывает `scripts\Install-ToVentoy.ps1` — после показа носителя и ввода токена.
 
 ## Требования к сборочной машине
 
@@ -44,6 +56,9 @@ powershell -ExecutionPolicy Bypass -File .\scripts\Build-WinIso.ps1 -PlanOnly
 powershell -ExecutionPolicy Bypass -File .\scripts\Get-Installers.ps1 -Pin
 # 3. Сборка → ISO, .sha256, журнал и отчёт в <work_dir>\logs, затем автоматическая статическая проверка
 powershell -ExecutionPolicy Bypass -File .\scripts\Build-WinIso.ps1
+# 4. Записать баннер и готовый ISO на флешку Ventoy D: (сначала план, затем запись с подтверждением токеном)
+powershell -ExecutionPolicy Bypass -File .\scripts\Install-ToVentoy.ps1 -Drive D -Banner .\ventoy\draft-banner.png -Iso C:\WinBuild\out\Win11_HomePro_ru-RU_custom.iso -PlanOnly
+powershell -ExecutionPolicy Bypass -File .\scripts\Install-ToVentoy.ps1 -Drive D -Banner .\ventoy\draft-banner.png -Iso C:\WinBuild\out\Win11_HomePro_ru-RU_custom.iso
 # Если сборка была прервана (остались смонтированные образы/кусты реестра):
 powershell -ExecutionPolicy Bypass -File .\scripts\Repair-WinIsoMounts.ps1 -PlanOnly   # затем без -PlanOnly
 ```
@@ -131,7 +146,7 @@ tests/synthetic-iso-test.sh                                   # сам вери�
 
 ```
 config/      build.json, apps.json, apps.example.json, appx-remove.json, tweaks.json
-scripts/     Build-WinIso.ps1, Get-Installers.ps1, Test-WinIsoOutput.ps1, Repair-WinIsoMounts.ps1, WinIso.Common.psm1
+scripts/     Build-WinIso.ps1, Get-Installers.ps1, Install-ToVentoy.ps1, Test-WinIsoOutput.ps1, Repair-WinIsoMounts.ps1, WinIso.Common.psm1
 payload/     Deploy-Apps.ps1, Undo-Tweaks.ps1, SetupComplete.cmd   (попадают в образ)
 unattend/    autounattend.template.xml
 ventoy/      ventoy_banner.py, base-theme/ (Ventoy 1.1.18, GPLv3), draft-banner.png, staged/

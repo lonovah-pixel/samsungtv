@@ -270,6 +270,22 @@ function Test-WinIsoInstallerFile {
     return [pscustomobject]$r
 }
 
+function Resolve-WinIsoSourceIso {
+    <#
+      source.iso_path может быть файлом или папкой. Для папки выбирается единственный ISO,
+      подходящий под source.iso_name_filter (по умолчанию Win11*.iso); иначе — ошибка со списком файлов.
+    #>
+    param([Parameter(Mandatory)][string]$Path, [string]$NameFilter = 'Win11*.iso')
+    if (Test-Path -LiteralPath $Path -PathType Leaf) { return (Resolve-Path -LiteralPath $Path).Path }
+    if (-not (Test-Path -LiteralPath $Path -PathType Container)) { throw "Не найден ISO или папка: $Path" }
+    $all = @(Get-ChildItem -LiteralPath $Path -File -Filter '*.iso')
+    $hits = @($all | Where-Object { $_.Name -like $NameFilter })
+    if ($hits.Count -eq 1) { return $hits[0].FullName }
+    $list = if ($all.Count) { ($all | ForEach-Object { $_.Name }) -join '; ' } else { '(ISO нет)' }
+    if ($hits.Count -eq 0) { throw "В $Path нет ISO по шаблону '$NameFilter'. Найдено: $list. Укажите полный путь к файлу в source.iso_path." }
+    throw "В $Path несколько ISO по шаблону '$NameFilter': $(($hits | ForEach-Object { $_.Name }) -join '; '). Укажите полный путь к нужному файлу в source.iso_path."
+}
+
 function Get-WinIsoFreeSpaceGB {
     param([Parameter(Mandatory)][string]$Path)
     $full = [IO.Path]::GetFullPath($Path)
