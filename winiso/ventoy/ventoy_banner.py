@@ -417,7 +417,15 @@ def rollback(root: Path, backup_id: str | None, force: bool = False) -> None:
 
 
 # --------------------------------------------------------------------------- баннер
-def make_banner(out: Path, source: Path | None, size: tuple[int, int], title: str, subtitle: str) -> None:
+PALETTES = {
+    # верх, низ, свечение, заголовок, подзаголовок, линия; band — доли высоты начала и конца перехода верх→низ
+    "blue": dict(top=(16, 32, 58), bottom=(6, 10, 20), glow=(40, 110, 200), title=(235, 242, 255), sub=(150, 185, 230), line=(70, 120, 190), band=(0.0, 1.0)),
+    "orange": dict(top=(252, 133, 7), bottom=(24, 24, 26), glow=None, title=(255, 255, 255), sub=(255, 244, 230), line=(252, 133, 7), band=(0.22, 0.27)),
+}
+
+
+def make_banner(out: Path, source: Path | None, size: tuple[int, int], title: str, subtitle: str, palette: str = "blue") -> None:
+    pal = PALETTES[palette]
     try:
         from PIL import Image, ImageDraw, ImageFont, ImageFilter
     except ImportError:
@@ -436,14 +444,17 @@ def make_banner(out: Path, source: Path | None, size: tuple[int, int], title: st
     else:
         # Черновой вариант: тёмный вертикальный градиент, заголовок в верхней зоне (меню начинается на 30% высоты).
         img = Image.new("RGB", (W, H))
-        top_c, bot_c = (16, 32, 58), (6, 10, 20)
+        top_c, bot_c = pal["top"], pal["bottom"]
         px = ImageDraw.Draw(img)
         for y in range(H):
-            t = y / (H - 1)
+            a0, a1 = pal["band"]
+            t = min(1.0, max(0.0, (y / (H - 1) - a0) / (a1 - a0)))
+            t = t * t * (3 - 2 * t)  # плавный переход
             px.line([(0, y), (W, y)], fill=tuple(round(a + (b - a) * t) for a, b in zip(top_c, bot_c)))
-        glow = Image.new("L", (W, H), 0)
-        ImageDraw.Draw(glow).ellipse([W * 0.2, -H * 0.25, W * 0.8, H * 0.35], fill=70)
-        img = Image.composite(Image.new("RGB", (W, H), (40, 110, 200)), img, glow.filter(ImageFilter.GaussianBlur(60)))
+        if pal["glow"]:
+            glow = Image.new("L", (W, H), 0)
+            ImageDraw.Draw(glow).ellipse([W * 0.2, -H * 0.25, W * 0.8, H * 0.35], fill=70)
+            img = Image.composite(Image.new("RGB", (W, H), pal["glow"]), img, glow.filter(ImageFilter.GaussianBlur(60)))
     d = ImageDraw.Draw(img)
     if title:
         font_path = _find_font(bold=True)
@@ -454,12 +465,12 @@ def make_banner(out: Path, source: Path | None, size: tuple[int, int], title: st
             font = ImageFont.truetype(font_path, fsize)
         y = int(H * 0.06)
         d.text(((W - d.textlength(title, font=font)) / 2 + 2, y + 2), title, font=font, fill=(0, 0, 0))
-        d.text(((W - d.textlength(title, font=font)) / 2, y), title, font=font, fill=(235, 242, 255))
+        d.text(((W - d.textlength(title, font=font)) / 2, y), title, font=font, fill=pal["title"])
         if subtitle:
             sp = _find_font(bold=False)
             sf = ImageFont.truetype(sp, int(H * 0.032)) if sp else ImageFont.load_default()
-            d.text(((W - d.textlength(subtitle, font=sf)) / 2, y + fsize * 1.25), subtitle, font=sf, fill=(150, 185, 230))
-        d.line([(W * 0.1, H * 0.27), (W * 0.9, H * 0.27)], fill=(70, 120, 190), width=2)
+            d.text(((W - d.textlength(subtitle, font=sf)) / 2, y + fsize * 1.25), subtitle, font=sf, fill=pal["sub"])
+        d.line([(W * 0.1, H * 0.27), (W * 0.9, H * 0.27)], fill=pal["line"], width=2)
     out.parent.mkdir(parents=True, exist_ok=True)
     img.save(out, "PNG", optimize=True)   # 8 бит RGB, без чересстрочности
     i = png_info(out)
@@ -540,13 +551,14 @@ def main(argv=None) -> int:
     p.add_argument("--list", action="store_true")
     p = sub.add_parser("make-banner"); p.add_argument("--out", type=Path, required=True); p.add_argument("--source", type=Path)
     p.add_argument("--size", default="1024x768"); p.add_argument("--title", default="Boot Menu"); p.add_argument("--subtitle", default="")
+    p.add_argument("--palette", choices=sorted(PALETTES), default="blue")
     p = sub.add_parser("stage"); p.add_argument("--out", type=Path, required=True); p.add_argument("--banner", type=Path, required=True)
     p.add_argument("--text-color", default="auto")
     a = ap.parse_args(argv)
     try:
         if a.cmd == "make-banner":
             w, h = (int(x) for x in a.size.lower().split("x"))
-            make_banner(a.out, a.source, (w, h), a.title, a.subtitle)
+            make_banner(a.out, a.source, (w, h), a.title, a.subtitle, a.palette)
         elif a.cmd == "stage":
             stage(a.out, a.banner, a.text_color)
         elif a.cmd == "inspect":

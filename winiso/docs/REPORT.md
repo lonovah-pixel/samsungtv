@@ -1,4 +1,15 @@
-# Отчёт WinIso — 2026-11-03
+# Отчёт WinIso — 2026-11-03 (обновлено после ответов)
+
+## 0. Принятые ответы
+
+| Вопрос | Ответ → что сделано |
+|---|---|
+| Windows | Windows 11 **Домашняя + Pro** в одном ISO: `target.editions = ["Core", "Professional"]`, ru-RU, x64 (язык выбран по переписке — смените, если ISO другой) |
+| Источник ISO | Предложен massgrave.dev. Это сайт активатора MAS — **не используется**: активаторы проект не встраивает по условиям задачи. Образ берётся с microsoft.com (multi-edition ISO содержит обе редакции), SHA-256 — оттуда же |
+| Программы | «Стандартный набор»: VC++ 2015-2022 и Google Chrome — **без интернета** (встроены в образ); 7-Zip, VLC, Notepad++, Telegram — **через winget** при первом входе |
+| Убрать | Xbox (`Microsoft.GamingApp`), Game Bar (`XboxGamingOverlay`, `XboxSpeechToTextOverlay`), новый Outlook и старые «Почта и Календарь». `Xbox.TCUI` и `XboxIdentityProvider` оставлены (без них игры из Store не входят в Xbox Live) — включаются в `appx-remove.json` |
+| Баннер | Ссылка — переадресация Google на страницу forbes.ru (профиль компании DNS), а не на файл картинки; forbes.ru закрыт сетевой политикой. Сделан черновик в стиле DNS (оранжевая полоса, белый «DNS», тёмное меню) и проверен в загрузчике Ventoy. Логотип — пришлите файлом и запустите `make-banner --source` |
+| Не получено | путь к ISO, рабочая папка/путь результата, флешка (буква), железо целевого ПК |
 
 ## 1. Проверка среды
 
@@ -16,8 +27,10 @@
 
 **Удаление предустановленных приложений** (DISM `Remove-AppxProvisionedPackage`, всё возвращается из Store):
 BingNews, BingWeather, BingSearch, GetHelp, Getstarted, MicrosoftSolitaireCollection, MicrosoftOfficeHub,
-WindowsFeedbackHub, Todos, PowerAutomateDesktop, Clipchamp, MicrosoftFamily, MSTeams, Cortana (если есть).
-Выключены по умолчанию: Xbox, Game Bar, Карты, новый Outlook. Защищено от удаления: Store, App Installer (winget),
+WindowsFeedbackHub, Todos, PowerAutomateDesktop, Clipchamp, MicrosoftFamily, MSTeams, Cortana (если есть),
+**GamingApp (Xbox), XboxGamingOverlay (Game Bar), XboxSpeechToTextOverlay, OutlookForWindows, windowscommunicationsapps** —
+всего 19, в каждой редакции. Побочный эффект Game Bar: Win+G и некоторые игры могут показать окно «нужно приложение
+ms-gamebar» — безвредно. Оставлены: Карты, Xbox.TCUI, XboxIdentityProvider. Защищено от удаления: Store, App Installer (winget),
 Безопасность Windows, фреймворки (VCLibs, UI.Xaml, .NET Native, WindowsAppRuntime), Терминал, Блокнот, Paint,
 Калькулятор, Фотографии, Ножницы, кодеки, виджеты.
 
@@ -33,18 +46,27 @@ OneDriveSetup подготовлено, но выключено.
 
 ## 3. Программы и версии
 
-Список программ ещё не прислан — `config/apps.json` пуст. Версии появятся в `<work_dir>\logs\build-report-*.json`
-после `Get-Installers.ps1` (версия файла, SHA-256, издатель подписи). `apps.example.json` показывает формат:
-VC++ Redistributable и Firefox MSI (офлайн), VLC и Notepad++ (winget).
+| Программа | Способ | Интернет | Источник / проверка |
+|---|---|---|---|
+| VC++ 2015-2022 x64 | офлайн, SetupComplete (SYSTEM) | не нужен | aka.ms/vs/17/release; подпись Microsoft Corporation + SHA-256 |
+| Google Chrome | офлайн MSI, SetupComplete | не нужен | dl.google.com Enterprise MSI; подпись Google LLC + SHA-256 |
+| 7-Zip | winget, первый вход, machine | нужен | `7zip.7zip`; winget сверяет SHA-256 манифеста (установщик не подписан) |
+| VLC | winget, первый вход, machine | нужен | `VideoLAN.VLC` |
+| Notepad++ | winget, первый вход, machine | нужен | `Notepad++.Notepad++` |
+| Telegram Desktop | winget, первый вход, профиль пользователя | нужен | `Telegram.TelegramDesktop` |
+
+Версии офлайн-установщиков фиксируются при `Get-Installers.ps1 -Pin` (версия, SHA-256, издатель) и попадают в
+`build-report-*.json`; версии winget — актуальные на момент установки (журнал `Deploy-FirstLogon-*.log`).
+Здесь загрузить и проверить их нельзя (нет Windows для проверки Authenticode), поэтому SHA-256 ещё не закреплены.
 
 ## 4. Результаты проверок
 
 | Проверка | Что подтверждает | Результат |
 |---|---|---|
-| `tests/Run-Tests.ps1` (pwsh 7.6, Linux) | синтаксис всех `.ps1/.psm1`, UTF-8 BOM, CRLF `.cmd`; валидация конфигурации; отказ на удаление защищённых пакетов и на твики Defender/UAC/Update; winget только на firstlogon; циклы зависимостей; `autounattend` без разметки дисков/ключей/учёток; `-PlanOnly` (код 2 при неполной, 0 при полной конфигурации); отказ реальной сборки вне Windows | **37/37** |
+| `tests/Run-Tests.ps1` (pwsh 7.6, Linux), в т. ч. две редакции, 19 удаляемых пакетов, 6 программ | синтаксис всех `.ps1/.psm1`, UTF-8 BOM, CRLF `.cmd`; валидация конфигурации; отказ на удаление защищённых пакетов и на твики Defender/UAC/Update; winget только на firstlogon; циклы зависимостей; `autounattend` без разметки дисков/ключей/учёток; `-PlanOnly` (код 2 при неполной, 0 при полной конфигурации); отказ реальной сборки вне Windows | **39/39** |
 | `tests/test_ventoy_banner.py` | новая тема с сохранением других ключей `ventoy.json`; побайтный откат; замена только `desktop-image` в существующей теме; битый JSON не трогается; битая ссылка на тему останавливает; неподходящий PNG отклоняется; целостность копии темы | **9/9** |
-| `tests/synthetic-iso-test.sh` | верификатор ISO принимает корректный синтетический образ (34 проверки) и отклоняет образ с `DiskConfiguration` | **пройдено** |
-| Ventoy на виртуальной флешке | Ventoy 1.1.18 установлен `Ventoy2Disk.sh` на **файл-образ** (loop), с заранее заданными `control` и `menu_alias`; `apply` с неверным токеном — отказ; с верным — запись; загрузка в QEMU **BIOS и UEFI**: новый баннер, кириллический alias и таймаут на месте ([BIOS](img/ventoy-test-bios.png), [UEFI](img/ventoy-test-uefi.png)); `rollback` вернул `ventoy.json` байт-в-байт | **пройдено** |
+| `tests/synthetic-iso-test.sh` | верификатор ISO принимает корректный синтетический образ с двумя редакциями Core+Professional и ei.cfg (40 проверок) и отклоняет образ с `DiskConfiguration` | **пройдено** |
+| Ventoy на виртуальной флешке | Ventoy 1.1.18 установлен `Ventoy2Disk.sh` на **файл-образ** (loop), с заранее заданными `control` и `menu_alias`; `apply` с неверным токеном — отказ; с верным — запись; загрузка в QEMU **BIOS и UEFI**: новый баннер, кириллический alias и таймаут на месте ([BIOS](img/ventoy-test-bios.png), [UEFI](img/ventoy-test-uefi.png)); `rollback` вернул `ventoy.json` байт-в-байт; затем баннер DNS применён в режиме замены существующей темы (изменён только `background.png`) | **пройдено** |
 
 **Не выполнено и статическими проверками не заменяется:**
 
@@ -52,7 +74,7 @@ VC++ Redistributable и Firefox MSI (офлайн), VLC и Notepad++ (winget).
 * реальные операции DISM (`Export/Mount/Remove-AppxProvisionedPackage`, `reg load`, `oscdimg`) — код не исполнялся на Windows;
 * `Deploy-Apps.ps1`, `Undo-Tweaks.ps1`, `Get-Installers.ps1` — только проверка синтаксиса;
 * загрузка ISO, установка Windows и программ в ВМ;
-* запись баннера на **вашу** флешку (носитель недоступен; баннер черновой).
+* запись баннера на **вашу** флешку (носитель недоступен; баннер — черновик в стиле DNS без настоящего логотипа).
 
 ## 5. Ограничения и замечания
 
@@ -60,6 +82,8 @@ VC++ Redistributable и Firefox MSI (офлайн), VLC и Notepad++ (winget).
 * `FirstLogonCommands` выполняются для первого входа пользователя, созданного в OOBE; если это не администратор,
   установка не выполнится (сценарий запишет это в журнал) — запустите `Deploy-Apps.ps1 -Stage FirstLogon` от администратора.
 * Программы `winget` требуют интернет на целевом ПК; полностью автономной будет только установка `offline`-программ.
+* `ei.cfg` с `[Channel] Retail` должен заставить установщик спрашивать редакцию при OEM-ключе в прошивке — подтвердите
+  в ВМ или на целевом ПК. Без ключа установщик предложит «У меня нет ключа продукта» и выбор редакции.
 * Копия темы взята из Ventoy 1.1.18; при другой версии Ventoy на флешке возможны мелкие визуальные отличия.
 * Для образа Windows новее сборочной ОС используйте DISM из соответствующего ADK (`tools.dism`).
 

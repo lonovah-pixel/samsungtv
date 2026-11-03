@@ -77,26 +77,33 @@ try {
         }
     }
 
+    $wanted = @(Get-WinIsoProp $b.target 'editions' @())
+    if ($wanted.Count -gt 1 -and (Get-WinIsoProp $b.image 'edition_choice_ei_cfg' $true)) {
+        Add-Check 'sources\ei.cfg (выбор редакции, без ключа)' ([bool](& $exists 'sources\ei.cfg'))
+    }
     if (& $exists 'sources\install.wim') {
+        $editions = $null; $fileLists = @()
         if ($IsWin) {
-            $imgs = @(Get-WindowsImage -ImagePath $wim)
-            $names = $imgs.ImageName
-            $files = (& dism.exe /English /List-Image "/ImageFile:$wim" /Index:1) -join "`n"
+            $imgs = @(Get-WindowsImage -ImagePath $wim | ForEach-Object { Get-WindowsImage -ImagePath $wim -Index $_.ImageIndex })
+            $editions = @($imgs | ForEach-Object { $_.EditionId })
+            foreach ($im in $imgs) { $fileLists += , ((& dism.exe /English /List-Image "/ImageFile:$wim" "/Index:$($im.ImageIndex)") -join "`n") }
         } elseif (Get-Command wimlib-imagex -ErrorAction SilentlyContinue) {
             $info = (& wimlib-imagex info $wim) -join "`n"
-            $names = @([regex]::Matches($info, '(?m)^Name:\s+(.+)$') | ForEach-Object { $_.Groups[1].Value.Trim() })
-            $files = ((& wimlib-imagex dir $wim 1) -join "`n").Replace('/', '\')
-        } else { $names = $null; $files = $null; Add-Check 'Чтение install.wim' $false 'нет wimlib-imagex' }
-        if ($null -ne $names) {
-            Add-Check 'install.wim: одна редакция' (@($names).Count -eq 1 -or -not $b.image.keep_single_edition) (@($names) -join '; ')
-            if ($b.target.edition_name) { Add-Check 'install.wim: выбранная редакция' (@($names) -contains $b.target.edition_name) $b.target.edition_name }
+            $count = [int]([regex]::Match($info, '(?m)^Image Count:\s+(\d+)').Groups[1].Value)
+            $editions = @([regex]::Matches($info, '(?m)^Edition ID:\s+(.+)$') | ForEach-Object { $_.Groups[1].Value.Trim() })
+            for ($k = 1; $k -le $count; $k++) { $fileLists += , (((& wimlib-imagex dir $wim $k) -join "`n").Replace('/', '\')) }
+        } else { Add-Check 'Чтение install.wim' $false 'нет wimlib-imagex' }
+        if ($null -ne $editions) {
+            Add-Check 'install.wim: состав редакций' ((@($editions | Sort-Object) -join ',') -eq (@($wanted | Sort-Object) -join ',')) ("в образе: " + (@($editions) -join ', ') + "; ожидается: " + ($wanted -join ', '))
         }
-        if ($files) {
+        $idx = 0
+        foreach ($files in $fileLists) {
+            $idx++
             foreach ($f in '\Windows\Setup\Scripts\SetupComplete.cmd', '\ProgramData\WinIsoDeploy\Deploy-Apps.ps1', '\ProgramData\WinIsoDeploy\apps.json', '\ProgramData\WinIsoDeploy\Undo-Tweaks.ps1') {
-                Add-Check "install.wim содержит $f" ($files -match [regex]::Escape($f))
+                Add-Check "index ${idx}: содержит $f" ($files -match [regex]::Escape($f))
             }
             foreach ($a in @((Get-WinIsoAppPlan $cfg) | Where-Object { $_.method -eq 'offline' })) {
-                Add-Check "install.wim содержит установщик $($a.offline.file)" ($files -match [regex]::Escape("\ProgramData\WinIsoDeploy\installers\$($a.offline.file)"))
+                Add-Check "index ${idx}: установщик $($a.offline.file)" ($files -match [regex]::Escape("\ProgramData\WinIsoDeploy\installers\$($a.offline.file)"))
             }
         }
     }

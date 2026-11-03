@@ -15,7 +15,7 @@ python3 - "$W/cfg/build.json" <<'PY'
 import json, sys
 p = sys.argv[1]; b = json.load(open(p, encoding="utf-8"))
 b["source"]["iso_path"] = "C:\\iso\\Win11.iso"
-b["target"].update(windows="Windows 11 25H2", edition_name="Windows 11 Pro", language="ru-RU")
+b["target"].update(windows="Windows 11 25H2", editions=["Core", "Professional"], language="ru-RU")
 b["paths"].update(work_dir="D:\\WinBuild", output_iso="D:\\WinBuild\\out\\custom.iso")
 json.dump(b, open(p, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
 PY
@@ -29,7 +29,11 @@ make_iso() {   # $1 = имя, $2 = файл autounattend
   echo '{}' > "$img/ProgramData/WinIsoDeploy/apps.json"
   echo stub > "$img/ProgramData/WinIsoDeploy/installers/vc_redist.x64.exe"
   echo stub > "$img/ProgramData/WinIsoDeploy/installers/Firefox-ru-x64.msi"
-  wimlib-imagex capture "$img" "$m/sources/install.wim" "Windows 11 Pro" --compress=fast >/dev/null
+  wimlib-imagex capture "$img" "$m/sources/install.wim" "Windows 11 Home" --compress=fast >/dev/null
+  wimlib-imagex append "$img" "$m/sources/install.wim" "Windows 11 Pro" >/dev/null
+  wimlib-imagex info "$m/sources/install.wim" 1 --image-property WINDOWS/EDITIONID=Core >/dev/null
+  wimlib-imagex info "$m/sources/install.wim" 2 --image-property WINDOWS/EDITIONID=Professional >/dev/null
+  printf '[Channel]\r\nRetail\r\n' > "$m/sources/ei.cfg"
   wimlib-imagex capture "$img" "$m/sources/boot.wim" "boot" --compress=fast >/dev/null
   cp "$2" "$m/autounattend.xml"
   xorriso -as mkisofs -quiet -J -joliet-long -R -V WIN_CUSTOM -o "$W/$1.iso" "$m" 2>/dev/null

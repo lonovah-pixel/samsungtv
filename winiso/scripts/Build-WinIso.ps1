@@ -41,10 +41,10 @@ $problems = Get-WinIsoConfigProblems $cfg
 function Show-Plan {
     Write-WinIsoLog '=== ПЛАН СБОРКИ (изменения не выполняются) ===' 'STEP'
     $t = $b.target
-    Write-WinIsoLog ("Windows: {0}; редакция: {1}; язык: {2}; архитектура: {3}" -f $t.windows, $t.edition_name, $t.language, $t.architecture) 'PLAN'
+    Write-WinIsoLog ("Windows: {0}; редакции (EditionId): {1}; язык: {2}; архитектура: {3}" -f $t.windows, (@($t.editions) -join ', '), $t.language, $t.architecture) 'PLAN'
     Write-WinIsoLog ("Оригинал ISO: {0} (только чтение, работа с копией)" -f $b.source.iso_path) 'PLAN'
     Write-WinIsoLog ("Рабочая папка: {0}; результат: {1}" -f $b.paths.work_dir, $b.paths.output_iso) 'PLAN'
-    Write-WinIsoLog 'Шаги: копия ISO → распаковка → экспорт редакции → монтирование install.wim → удаление приложений → твики → драйверы → сценарии программ → сохранение → autounattend.xml → oscdimg → SHA-256 → проверка' 'PLAN'
+    Write-WinIsoLog 'Шаги: копия ISO → распаковка → экспорт выбранных редакций → для каждой: монтирование install.wim → удаление приложений → твики → драйверы → сценарии программ → сохранение → autounattend.xml → oscdimg → SHA-256 → проверка' 'PLAN'
 
     Write-WinIsoLog '--- Удаление предустановленных приложений (DISM Remove-AppxProvisionedPackage)' 'STEP'
     try {
@@ -90,7 +90,7 @@ if ($PlanOnly) {
             $img = Mount-DiskImage -ImagePath $b.source.iso_path -Access ReadOnly -StorageType ISO -PassThru
             $letter = ($img | Get-Volume).DriveLetter
             $wim = @("${letter}:\sources\install.wim", "${letter}:\sources\install.esd") | Where-Object { Test-Path $_ } | Select-Object -First 1
-            Get-WindowsImage -ImagePath $wim | ForEach-Object { Write-WinIsoLog ("  Index {0}: {1}" -f $_.ImageIndex, $_.ImageName) 'PLAN' }
+            Get-WindowsImage -ImagePath $wim | ForEach-Object { $x = Get-WindowsImage -ImagePath $wim -Index $_.ImageIndex; Write-WinIsoLog ("  Index {0}: {1} [EditionId={2}] {3}" -f $x.ImageIndex, $x.ImageName, $x.EditionId, $(if (@($t.editions) -contains $x.EditionId) { '← выбрана' } else { '' })) 'PLAN' }
         } finally { if ($img) { Dismount-DiskImage -ImagePath $b.source.iso_path | Out-Null } }
     }
     exit ([int]($problems.Count -gt 0) * 2)
@@ -172,12 +172,15 @@ function Set-OfflineTweaks {
             $res = 'set'
         }
         Write-WinIsoLog "Твик $($tw.id): $res" 'OK'
-        $Report.tweaks += [ordered]@{ id = $tw.id; result = $res; purpose = $tw.purpose; side_effect = $tw.side_effect; undo = $tw.undo }
+        if (-not (@($Report.tweaks | ForEach-Object { $_.id }) -contains $tw.id)) {
+            $Report.tweaks += [ordered]@{ id = $tw.id; result = $res; purpose = $tw.purpose; side_effect = $tw.side_effect; undo = $tw.undo }
+        }
     }
     Invoke-HiveUnload
 }
 
 function Copy-Payload {
+    param([switch]$RecordReport)
     $dst = Join-Path $Mount 'ProgramData\WinIsoDeploy'
     New-Item -ItemType Directory -Force -Path (Join-Path $dst 'installers'), (Join-Path $dst 'logs') | Out-Null
     foreach ($f in 'Deploy-Apps.ps1', 'Undo-Tweaks.ps1') { Copy-Item -LiteralPath (Join-Path $ProjectRoot "payload\$f") -Destination $dst -Force }
@@ -196,7 +199,7 @@ function Copy-Payload {
             Copy-Item -LiteralPath $src -Destination (Join-Path $dst 'installers') -Force
             $entry.included = $true
         } else { $entry.note = 'загрузка winget при первом входе' }
-        $Report.apps += $entry
+        if ($RecordReport) { $Report.apps += $entry }
         Write-WinIsoLog "Программа $($a.name): $(if ($entry.included) {'установщик встроен'} else {$entry.note})" 'OK'
     }
     # Итоговые файлы конфигурации для установленной системы (только включённые элементы).
@@ -251,57 +254,63 @@ try {
         ForEach-Object { $_.Attributes = $_.Attributes -bxor [IO.FileAttributes]::ReadOnly }
     if (Test-Path -LiteralPath (Join-Path $Media 'autounattend.xml')) { throw 'В исходном ISO уже есть autounattend.xml — проверьте источник образа.' }
 
-    Write-WinIsoLog '=== 4. Выбор редакции и экспорт ===' 'STEP'
+    Write-WinIsoLog '=== 4. Выбор редакций и экспорт ===' 'STEP'
     $srcWim = @('install.wim', 'install.esd') | ForEach-Object { Join-Path $Media "sources\$_" } | Where-Object { Test-Path $_ } | Select-Object -First 1
     if (-not $srcWim) { throw 'В ISO не найден sources\install.wim/esd.' }
-    $images = @(Get-WindowsImage -ImagePath $srcWim)
-    $images | ForEach-Object { Write-WinIsoLog ("  Index {0}: {1} ({2:N1} ГБ)" -f $_.ImageIndex, $_.ImageName, ($_.ImageSize / 1GB)) }
-    $sel = @($images | Where-Object { $_.ImageName -eq $b.target.edition_name })
-    if ($sel.Count -ne 1) { throw "Редакция '$($b.target.edition_name)' не найдена однозначно. Доступные: $(($images.ImageName) -join '; ')" }
-    $info = Get-WindowsImage -ImagePath $srcWim -Index $sel[0].ImageIndex
-    Write-WinIsoLog "Выбрано: $($info.ImageName), версия $($info.Version), архитектура $($info.Architecture), языки $($info.Languages -join ',')"
-    $archMap = @{ amd64 = 9; arm64 = 12 }
-    if ([int]$info.Architecture -ne $archMap[$b.target.architecture]) { throw "Архитектура образа ($($info.Architecture)) не совпадает с target.architecture." }
-    if (@($info.Languages) -notcontains $b.target.language) { throw "Язык образа ($($info.Languages -join ',')) не совпадает с target.language." }
-    if ($info.Version -and ([version]$info.Version).Build -gt $osBuild -and $Dism -eq 'dism.exe') {
-        Write-WinIsoLog "Образ ($($info.Version)) новее сборочной ОС: рекомендуется DISM из ADK соответствующей версии (tools.dism)." 'WARN'
+    $images = @(Get-WindowsImage -ImagePath $srcWim | ForEach-Object { Get-WindowsImage -ImagePath $srcWim -Index $_.ImageIndex })
+    $images | ForEach-Object { Write-WinIsoLog ("  Index {0}: {1} [EditionId={2}] ({3:N1} ГБ)" -f $_.ImageIndex, $_.ImageName, $_.EditionId, ($_.ImageSize / 1GB)) }
+    $wanted = @($b.target.editions)
+    $sel = @($images | Where-Object { $wanted -contains $_.EditionId } | Sort-Object ImageIndex)
+    foreach ($e in $wanted) {
+        $m = @($sel | Where-Object { $_.EditionId -eq $e })
+        if ($m.Count -ne 1) { throw "Редакция EditionId='$e' найдена $($m.Count) раз(а). Доступные: $(($images | ForEach-Object { "$($_.EditionId) ($($_.ImageName))" }) -join '; ')" }
     }
-    $Report.image = [ordered]@{ name = $info.ImageName; version = "$($info.Version)"; languages = @($info.Languages); index_in_source = $sel[0].ImageIndex }
+    $archMap = @{ amd64 = 9; arm64 = 12 }
+    foreach ($info in $sel) {
+        if ([int]$info.Architecture -ne $archMap[$b.target.architecture]) { throw "Архитектура $($info.ImageName) ($($info.Architecture)) не совпадает с target.architecture." }
+        if (@($info.Languages) -notcontains $b.target.language) { throw "Язык $($info.ImageName) ($($info.Languages -join ',')) не совпадает с target.language." }
+        if ($info.Version -and ([version]$info.Version).Build -gt $osBuild -and $Dism -eq 'dism.exe') {
+            Write-WinIsoLog "Образ ($($info.Version)) новее сборочной ОС: рекомендуется DISM из ADK соответствующей версии (tools.dism)." 'WARN'
+        }
+    }
+    $Report.images = @($sel | ForEach-Object { [ordered]@{ name = $_.ImageName; edition_id = $_.EditionId; version = "$($_.Version)"; languages = @($_.Languages); index_in_source = $_.ImageIndex } })
     $newWim = Join-Path $Work 'install.wim'
     if (Test-Path -LiteralPath $newWim) { Remove-Item -LiteralPath $newWim -Force }
-    if ($b.image.keep_single_edition) {
-        Export-WindowsImage -SourceImagePath $srcWim -SourceIndex $sel[0].ImageIndex -DestinationImagePath $newWim -CompressionType $b.image.compression -CheckIntegrity | Out-Null
-        $wimIndex = 1
-    } else {
-        if ($srcWim -like '*.esd') { throw 'keep_single_edition=false с install.esd не поддерживается — установите true.' }
-        Copy-Item -LiteralPath $srcWim -Destination $newWim; $wimIndex = $sel[0].ImageIndex
+    foreach ($info in $sel) {
+        Write-WinIsoLog "Экспорт: $($info.ImageName) (index $($info.ImageIndex))"
+        Export-WindowsImage -SourceImagePath $srcWim -SourceIndex $info.ImageIndex -DestinationImagePath $newWim -CompressionType $b.image.compression -CheckIntegrity | Out-Null
     }
     Remove-Item -LiteralPath $srcWim -Force
 
     Write-WinIsoLog '=== 5. Обслуживание образа ===' 'STEP'
-    if (Test-Path -LiteralPath $Mount) { Remove-Item -LiteralPath $Mount -Recurse -Force }
-    New-Item -ItemType Directory -Path $Mount | Out-Null
-    Mount-WindowsImage -ImagePath $newWim -Index $wimIndex -Path $Mount | Out-Null
-    $state.WimMounted = $true
-
-    $present = @(Get-AppxProvisionedPackage -Path $Mount)
-    Write-WinIsoLog "Предустановленных пакетов в образе: $($present.Count)"
-    foreach ($n in (Get-WinIsoAppxRemovalList $cfg)) {
-        $pkg = @($present | Where-Object { $_.DisplayName -eq $n })
-        if (-not $pkg.Count) { Write-WinIsoLog "Пакета $n нет в образе — пропуск"; $Report.skipped_appx += $n; continue }
-        foreach ($p in $pkg) {
-            Remove-AppxProvisionedPackage -Path $Mount -PackageName $p.PackageName | Out-Null
-            Write-WinIsoLog "Удалён пакет: $($p.PackageName)" 'OK'
-            $Report.removed_appx += $p.PackageName
-        }
-    }
-
-    Set-OfflineTweaks
-
     $drv = Get-WinIsoProp $b.paths 'drivers_dir'
+    if ($drv -and -not (Test-Path -LiteralPath $drv)) { throw "Папка драйверов не найдена: $drv" }
+    for ($i = 1; $i -le $sel.Count; $i++) {
+        Write-WinIsoLog "--- install.wim index ${i}: $($sel[$i - 1].ImageName)" 'STEP'
+        if (Test-Path -LiteralPath $Mount) { Remove-Item -LiteralPath $Mount -Recurse -Force }
+        New-Item -ItemType Directory -Path $Mount | Out-Null
+        Mount-WindowsImage -ImagePath $newWim -Index $i -Path $Mount | Out-Null
+        $state.WimMounted = $true
+
+        $present = @(Get-AppxProvisionedPackage -Path $Mount)
+        Write-WinIsoLog "Предустановленных пакетов: $($present.Count)"
+        foreach ($n in (Get-WinIsoAppxRemovalList $cfg)) {
+            $pkg = @($present | Where-Object { $_.DisplayName -eq $n })
+            if (-not $pkg.Count) { Write-WinIsoLog "Пакета $n нет в образе — пропуск"; $Report.skipped_appx += "[$i] $n"; continue }
+            foreach ($p in $pkg) {
+                Remove-AppxProvisionedPackage -Path $Mount -PackageName $p.PackageName | Out-Null
+                Write-WinIsoLog "Удалён пакет: $($p.PackageName)" 'OK'
+                $Report.removed_appx += "[$i] $($p.PackageName)"
+            }
+        }
+        Set-OfflineTweaks
+        if ($drv) { Add-WindowsDriver -Path $Mount -Driver $drv -Recurse | ForEach-Object { $Report.drivers += "[$i] $($_.Driver)" } }
+        Copy-Payload -RecordReport:($i -eq 1)
+        Write-WinIsoLog 'Сохранение индекса…'
+        Dismount-WindowsImage -Path $Mount -Save -CheckIntegrity | Out-Null
+        $state.WimMounted = $false
+    }
     if ($drv) {
-        if (-not (Test-Path -LiteralPath $drv)) { throw "Папка драйверов не найдена: $drv" }
-        Add-WindowsDriver -Path $Mount -Driver $drv -Recurse | ForEach-Object { $Report.drivers += $_.Driver }
         $bootWim = Join-Path $Media 'sources\boot.wim'
         New-Item -ItemType Directory -Force -Path $MountBoot | Out-Null
         Mount-WindowsImage -ImagePath $bootWim -Index 2 -Path $MountBoot | Out-Null; $state.BootMounted = $true
@@ -309,13 +318,14 @@ try {
         Dismount-WindowsImage -Path $MountBoot -Save | Out-Null; $state.BootMounted = $false
         Write-WinIsoLog "Драйверы добавлены в install.wim и boot.wim (индекс 2)" 'OK'
     }
-
-    Copy-Payload
-
-    Write-WinIsoLog 'Сохранение образа…'
-    Dismount-WindowsImage -Path $Mount -Save -CheckIntegrity | Out-Null
-    $state.WimMounted = $false
     Move-Item -LiteralPath $newWim -Destination (Join-Path $Media 'sources\install.wim') -Force
+    if ($sel.Count -gt 1 -and (Get-WinIsoProp $b.image 'edition_choice_ei_cfg' $true)) {
+        # ei.cfg без EditionID и без ключа: Setup показывает выбор редакции, даже если в прошивке есть OEM-ключ Home.
+        $ei = Join-Path $Media 'sources\ei.cfg'
+        if (Test-Path -LiteralPath $ei) { throw 'В ISO уже есть sources\ei.cfg — проверьте источник образа.' }
+        [IO.File]::WriteAllText($ei, "[Channel]`r`nRetail`r`n", [Text.Encoding]::ASCII)
+        Write-WinIsoLog 'Добавлен sources\ei.cfg ([Channel] Retail, без ключа) — выбор редакции при установке' 'OK'
+    }
 
     Write-WinIsoLog '=== 6. Файл ответов ===' 'STEP'
     if ($b.unattend.enabled) {

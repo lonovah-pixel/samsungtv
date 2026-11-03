@@ -1,24 +1,25 @@
 {
   "_readme": "Основная конфигурация сборки. Значения null — обязательные параметры, которые ещё не указаны: сборка остановится, а режим плана (-PlanOnly) перечислит их. Подробности в README.md.",
   "schema": 1,
-
   "source": {
     "iso_path": null,
     "iso_sha256": null,
-    "_iso_sha256": "Необязательно. Если указан, оригинал сверяется с ним (например, с хэшем из Visual Studio Subscriptions / страницы загрузки Microsoft)."
+    "_iso_sha256": "Необязательно. Если указан, оригинал сверяется с ним (например, с хэшем из Visual Studio Subscriptions / страницы загрузки Microsoft).",
+    "_iso_path": "Официальный ISO: https://www.microsoft.com/ru-ru/software-download/windows11 → «Загрузка образа диска (ISO)» → Windows 11 (multi-edition ISO). SHA-256 показывается там же после выбора языка — впишите его в iso_sha256."
   },
-
   "target": {
-    "windows": null,
-    "_windows": "Например: \"Windows 11 25H2\". Только для отчёта и проверок совместимости.",
-    "edition_name": null,
-    "_edition_name": "Точное значение ImageName из install.wim/esd, например \"Windows 11 Pro\". Список выводит -PlanOnly на Windows. Угадывать не будем.",
-    "language": null,
-    "_language": "Например: \"ru-RU\". Должен совпадать с языком ISO.",
+    "windows": "Windows 11 (Домашняя + Pro)",
+    "_windows": "Только для отчёта. Исходный образ — официальный многоредакционный ISO Windows 11 (consumer) с сайта Microsoft.",
+    "editions": [
+      "Core",
+      "Professional"
+    ],
+    "_editions": "EditionId редакций, которые останутся в ISO (не зависит от языка): Core = Домашняя, Professional = Pro. Другие: CoreSingleLanguage, Education, ProfessionalWorkstation… Список из ISO выводит -PlanOnly.",
+    "language": "ru-RU",
+    "_language": "Должен совпадать с языком ISO. Выбран русский по языку переписки — поменяйте, если ISO другой.",
     "architecture": "amd64",
-    "volume_label": "WIN_CUSTOM"
+    "volume_label": "WIN11_CUSTOM"
   },
-
   "paths": {
     "work_dir": null,
     "_work_dir": "Папка проекта и рабочих файлов. Нужно ~25 ГБ свободного места на NTFS. Не корень диска.",
@@ -28,28 +29,24 @@
     "drivers_dir": null,
     "_drivers_dir": "Необязательно: папка с .inf драйверами (например, Intel RST/VMD или сетевыми) для целевого ПК. Добавляются в install.wim и boot.wim."
   },
-
   "tools": {
     "oscdimg": "C:\\Program Files (x86)\\Windows Kits\\10\\Assessment and Deployment Kit\\Deployment Tools\\amd64\\Oscdimg\\oscdimg.exe",
     "_oscdimg": "Ставится компонентом Deployment Tools из Windows ADK.",
     "dism": "dism.exe",
     "_dism": "Для образа новее ОС сборочной машины укажите dism.exe из ADK той же версии."
   },
-
   "image": {
-    "keep_single_edition": true,
-    "_keep_single_edition": "true: в ISO остаётся только выбранная редакция (экспорт индекса). Выбор диска при установке не затрагивается.",
     "compression": "max",
+    "edition_choice_ei_cfg": true,
+    "_edition_choice_ei_cfg": "true: при двух и более редакциях кладёт sources\\ei.cfg с одним [Channel] Retail (без ключа и EditionID), чтобы установщик спрашивал редакцию даже на ноутбуке с OEM-ключом Домашней в прошивке. Проверьте поведение в ВМ.",
     "boot_efi_image": "auto",
     "_boot_efi_image": "auto = efi\\microsoft\\boot\\efisys.bin из самого ISO (совпадает с его загрузчиком). Можно указать efisys_EX.bin, если ISO подписан Windows UEFI CA 2023."
   },
-
   "unattend": {
     "enabled": true,
     "_enabled": "autounattend.xml содержит только FirstLogonCommands для установки программ. Нет разметки дисков, ключей, паролей, учётных записей и обхода требований.",
     "first_logon_script": "C:\\ProgramData\\WinIsoDeploy\\Deploy-Apps.ps1"
   },
-
   "optimization": {
     "profile": "conservative",
     "appx_remove_file": "appx-remove.json",
@@ -57,9 +54,7 @@
     "user_extra_appx_remove": [],
     "_user_extra_appx_remove": "Ваш список приложений Windows для удаления (имена пакетов, например \"Microsoft.BingNews\"). Защищённые пакеты удалить нельзя — скрипт откажет."
   },
-
   "apps_file": "apps.json",
-
   "security": {
     "require_sha256_for_offline": true,
     "_require_sha256_for_offline": "true: офлайн-установщик без указанного SHA-256 не попадёт в образ (иначе только предупреждение и запись вычисленного хэша).",

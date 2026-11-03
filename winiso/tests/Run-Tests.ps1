@@ -25,7 +25,7 @@ function New-TestConfig([scriptblock]$Mutate) {
     Copy-Item (Join-Path $Root 'config/*.json') $d
     Copy-Item (Join-Path $d 'apps.example.json') (Join-Path $d 'apps.json') -Force
     $b = Get-Content (Join-Path $d 'build.json') -Raw | ConvertFrom-Json
-    $b.source.iso_path = 'C:\iso\Win11.iso'; $b.target.windows = 'Windows 11 25H2'; $b.target.edition_name = 'Windows 11 Pro'
+    $b.source.iso_path = 'C:\iso\Win11.iso'; $b.target.windows = 'Windows 11 25H2'; $b.target.editions = @('Core', 'Professional')
     $b.target.language = 'ru-RU'; $b.paths.work_dir = 'D:\WinBuild'; $b.paths.output_iso = 'D:\WinBuild\out\custom.iso'
     $b | ConvertTo-Json -Depth 10 | Set-Content (Join-Path $d 'build.json') -Encoding UTF8
     if ($Mutate) { & $Mutate $d }
@@ -55,7 +55,7 @@ try {
     # 2. Текущая конфигурация: неполная, это ожидаемо до ответов пользователя
     $cfg = Import-WinIsoConfig (Join-Path $Root 'config/build.json')
     $p = Get-WinIsoConfigProblems $cfg
-    Assert 'Текущий build.json: обнаружены незаполненные параметры' { @($p | Where-Object { $_ -like '*source.iso_path*' }).Count -eq 1 -and @($p | Where-Object { $_ -like '*edition_name*' }).Count -eq 1 }
+    Assert 'Текущий build.json: обнаружены незаполненные параметры' { @($p | Where-Object { $_ -like '*source.iso_path*' }).Count -eq 1 -and @($p | Where-Object { $_ -like '*work_dir*' }).Count -eq 1 -and @($p | Where-Object { $_ -like '*editions*' }).Count -eq 0 }
 
     # 3. Полная тестовая конфигурация проходит
     $ok = Import-WinIsoConfig (New-TestConfig)
@@ -66,7 +66,15 @@ try {
         ((Get-WinIsoAppPlan $c).id[0..1] -join ',') -eq 'firefox,vcredist-x64'
     }
     Assert 'Твики: включено 8, все поля заполнены' { (Get-WinIsoTweakList $ok).Count -eq 8 }
-    Assert 'Удаление приложений: 14 по умолчанию' { (Get-WinIsoAppxRemovalList $ok).Count -eq 14 }
+    Assert 'Удаление приложений: 19 (включая Xbox, Game Bar, Outlook)' { $l = Get-WinIsoAppxRemovalList $ok; $l.Count -eq 19 -and $l -contains 'Microsoft.GamingApp' -and $l -contains 'Microsoft.XboxGamingOverlay' -and $l -contains 'Microsoft.OutlookForWindows' -and $l -notcontains 'Microsoft.XboxIdentityProvider' }
+    Assert 'Пустой target.editions — проблема' {
+        $c = Import-WinIsoConfig (New-TestConfig { param($d) Edit-Json "$d/build.json" { param($j) $j.target.editions = @() } })
+        @(Get-WinIsoConfigProblems $c | Where-Object { $_ -like '*target.editions*' }).Count -eq 1
+    }
+    Assert 'Рабочий apps.json: 6 программ, winget только при первом входе' {
+        $c = Import-WinIsoConfig (Join-Path $Root 'config/build.json'); $pl = Get-WinIsoAppPlan $c
+        $pl.Count -eq 6 -and -not @($pl | Where-Object { $_.method -eq 'winget' -and $_.stage -ne 'firstlogon' }).Count
+    }
 
     # 4. Защитные ограничения
     Assert 'Защищённый пакет (Store) нельзя удалить' {

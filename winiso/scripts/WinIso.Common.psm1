@@ -203,7 +203,6 @@ function Get-WinIsoConfigProblems {
     $required = [ordered]@{
         'source.iso_path'     = 'путь к оригинальному ISO'
         'target.windows'      = 'версия Windows'
-        'target.edition_name' = 'редакция (ImageName)'
         'target.language'     = 'язык'
         'paths.work_dir'      = 'рабочая папка'
         'paths.output_iso'    = 'путь к готовому ISO'
@@ -212,6 +211,10 @@ function Get-WinIsoConfigProblems {
         $sec, $name = $k.Split('.')
         if (-not (Get-WinIsoProp (Get-WinIsoProp $b $sec) $name)) { $p.Add("Не указан параметр $k — $($required[$k]).") }
     }
+    $eds = @(Get-WinIsoProp (Get-WinIsoProp $b 'target') 'editions' @())
+    if ($eds.Count -eq 0) { $p.Add('Не указан параметр target.editions — редакции (EditionId, например Core = Домашняя, Professional = Pro).') }
+    foreach ($e in $eds) { if ("$e" -notmatch '^[A-Za-z]+$') { $p.Add("target.editions: недопустимый EditionId '$e'.") } }
+    if (@($eds | Select-Object -Unique).Count -ne $eds.Count) { $p.Add('target.editions: повторяющиеся значения.') }
     $arch = Get-WinIsoProp (Get-WinIsoProp $b 'target') 'architecture'
     if ($arch -notin 'amd64', 'arm64') { $p.Add("target.architecture должен быть amd64 или arm64 (сейчас '$arch').") }
     $label = Get-WinIsoProp (Get-WinIsoProp $b 'target') 'volume_label' ''

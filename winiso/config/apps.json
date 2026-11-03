@@ -1,4 +1,103 @@
 {
-  "_readme": "Список программ. Пока пуст: список вы ещё не прислали, угадывать его не будем. Формат и готовые примеры — apps.example.json, описание полей — README.md, раздел «Программы».",
-  "apps": []
+  "_readme": "Стандартный набор программ. offline — установщик встраивается в образ и ставится без интернета; winget — загружается при первом входе (нужен интернет). Добавить/убрать программу: отредактируйте список или поставьте \"enabled\": false. Формат полей — README.md, раздел «Программы».",
+  "apps": [
+    {
+      "id": "vcredist-x64",
+      "name": "Microsoft Visual C++ 2015-2022 Redistributable (x64)",
+      "enabled": true,
+      "method": "offline",
+      "stage": "setupcomplete",
+      "order": 10,
+      "depends_on": [],
+      "offline": {
+        "url": "https://aka.ms/vs/17/release/vc_redist.x64.exe",
+        "file": "vc_redist.x64.exe",
+        "type": "exe",
+        "args": "/install /quiet /norestart",
+        "sha256": null,
+        "expected_signer": "CN=Microsoft Corporation"
+      },
+      "detect": { "type": "uninstall_displayname", "pattern": "^Microsoft Visual C\\+\\+ (2015-20\\d\\d|v14) .*x64" },
+      "success_codes": [0, 1638],
+      "reboot_codes": [3010, 1641],
+      "license": "Распространение разрешено лицензией Visual C++ Redistributable. Нужен многим программам и играм.",
+      "fallback_winget_id": "Microsoft.VCRedist.2015+.x64"
+    },
+    {
+      "id": "chrome",
+      "name": "Google Chrome (Enterprise MSI, x64)",
+      "enabled": true,
+      "method": "offline",
+      "stage": "setupcomplete",
+      "order": 20,
+      "depends_on": [],
+      "offline": {
+        "url": "https://dl.google.com/dl/chrome/install/googlechromestandaloneenterprise64.msi",
+        "file": "googlechromestandaloneenterprise64.msi",
+        "type": "msi",
+        "args": "/qn /norestart",
+        "sha256": null,
+        "expected_signer": "CN=Google LLC"
+      },
+      "detect": { "type": "uninstall_displayname", "pattern": "^Google Chrome$" },
+      "success_codes": [0, 1638],
+      "reboot_codes": [3010, 1641],
+      "license": "Официальный MSI Google для развёртывания; обновляется сам после установки.",
+      "fallback_winget_id": "Google.Chrome"
+    },
+    {
+      "id": "7zip",
+      "name": "7-Zip",
+      "enabled": true,
+      "method": "winget",
+      "stage": "firstlogon",
+      "order": 30,
+      "depends_on": [],
+      "winget": { "id": "7zip.7zip", "source": "winget", "scope": "machine", "version": null },
+      "detect": { "type": "winget" },
+      "success_codes": [0],
+      "reboot_codes": [],
+      "license": "Через winget: установщики 7-Zip не подписаны Authenticode, winget сверяет SHA-256 из манифеста."
+    },
+    {
+      "id": "vlc",
+      "name": "VLC media player",
+      "enabled": true,
+      "method": "winget",
+      "stage": "firstlogon",
+      "order": 40,
+      "depends_on": [],
+      "winget": { "id": "VideoLAN.VLC", "source": "winget", "scope": "machine", "version": null },
+      "detect": { "type": "winget" },
+      "success_codes": [0],
+      "reboot_codes": []
+    },
+    {
+      "id": "notepadplusplus",
+      "name": "Notepad++",
+      "enabled": true,
+      "method": "winget",
+      "stage": "firstlogon",
+      "order": 50,
+      "depends_on": [],
+      "winget": { "id": "Notepad++.Notepad++", "source": "winget", "scope": "machine", "version": null },
+      "detect": { "type": "winget" },
+      "success_codes": [0],
+      "reboot_codes": []
+    },
+    {
+      "id": "telegram",
+      "name": "Telegram Desktop",
+      "enabled": true,
+      "method": "winget",
+      "stage": "firstlogon",
+      "order": 60,
+      "depends_on": [],
+      "winget": { "id": "Telegram.TelegramDesktop", "source": "winget", "scope": null, "version": null },
+      "detect": { "type": "winget" },
+      "success_codes": [0],
+      "reboot_codes": [],
+      "license": "Ставится в профиль пользователя первого входа (так устроен установщик Telegram)."
+    }
+  ]
 }

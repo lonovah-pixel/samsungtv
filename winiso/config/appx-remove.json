@@ -131,16 +131,16 @@
     },
     {
       "name": "Microsoft.GamingApp",
-      "enabled": false,
+      "enabled": true,
       "purpose": "Приложение Xbox.",
-      "side_effect": "Нет приложения Xbox / Game Pass. Выключено по умолчанию: нужно для части игр.",
+      "side_effect": "Нет приложения Xbox / Game Pass (удалено по вашему выбору). Игры из Store, требующие Xbox-приложение, попросят его установить.",
       "undo": "winget install --id 9MV0B5HZVK9Z --source msstore"
     },
     {
       "name": "Microsoft.XboxGamingOverlay",
-      "enabled": false,
+      "enabled": true,
       "purpose": "Игровая панель Xbox Game Bar (Win+G).",
-      "side_effect": "Нет записи экрана Win+G и игровых оверлеев. Выключено по умолчанию.",
+      "side_effect": "Нет Win+G (запись экрана, оверлеи, счётчик FPS). При нажатии Win+G или запуске некоторых игр Windows может показать окно «нужно приложение ms-gamebar» — это безвредно. Удалено по вашему выбору.",
       "undo": "winget install --id 9NZKPSTSNW4P --source msstore"
     },
     {
@@ -152,10 +152,38 @@
     },
     {
       "name": "Microsoft.OutlookForWindows",
-      "enabled": false,
+      "enabled": true,
       "purpose": "Новый Outlook.",
-      "side_effect": "Нет почтового клиента по умолчанию. Выключено: удалять только если почта не нужна.",
+      "side_effect": "Нет встроенного почтового клиента (удалено по вашему выбору). Почта в браузере работает.",
       "undo": "winget install --id 9NRX63209R7B --source msstore"
+    },
+    {
+      "name": "Microsoft.XboxSpeechToTextOverlay",
+      "enabled": true,
+      "purpose": "Часть Game Bar: голосовой/текстовый оверлей для игр.",
+      "side_effect": "Нет оверлея преобразования речи в текст в играх.",
+      "undo": "Ставится вместе с Xbox Game Bar: winget install --id 9NZKPSTSNW4P --source msstore"
+    },
+    {
+      "name": "microsoft.windowscommunicationsapps",
+      "enabled": true,
+      "purpose": "Старые «Почта и Календарь» (есть в части образов; заменяются новым Outlook).",
+      "side_effect": "Нет старых приложений «Почта» и «Календарь».",
+      "undo": "Microsoft Store → «Почта и Календарь» (если ещё доступно) или новый Outlook: winget install --id 9NRX63209R7B --source msstore"
+    },
+    {
+      "name": "Microsoft.Xbox.TCUI",
+      "enabled": false,
+      "purpose": "Компонент входа и друзей Xbox, который используют игры из Store.",
+      "side_effect": "Выключено: без него игры из Store (Minecraft, Forza и т. п.) не смогут войти в Xbox Live. Включите, только если игр из Store не будет.",
+      "undo": "Microsoft Store → «Xbox TCUI»."
+    },
+    {
+      "name": "Microsoft.XboxIdentityProvider",
+      "enabled": false,
+      "purpose": "Поставщик учётных данных Xbox для игр.",
+      "side_effect": "Выключено: нужен для входа в Xbox-аккаунт в играх и приложениях. Включите, только если игр из Store не будет.",
+      "undo": "Microsoft Store → «Xbox Identity Provider»."
     }
   ]
 }
