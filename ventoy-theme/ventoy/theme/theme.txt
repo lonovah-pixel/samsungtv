@@ -1,0 +1,89 @@
+# Тема Ventoy «DNS». Сгенерировано build_theme.py — правьте генератор, а не этот файл.
+desktop-image: "background.png"
+desktop-color: "#18181a"
+title-text: ""
+message-color: "#f2f2f2"
+message-bg-color: "#18181a"
+
++ boot_menu {
+  left = 102
+  top = 240
+  width = 819
+  height = 344
+
+  # прозрачная рамка задаёт внутренние отступы, сама панель нарисована на фоне
+  menu_pixmap_style = "menu_*.png"
+  item_padding = 20
+
+  item_color = "#c9ced6"
+  selected_item_color = "#f2f2f2"
+  selected_item_pixmap_style = "select_*.png"
+  item_height = 28
+  item_spacing = 4
+  icon_width = 32
+  icon_height = 28
+  item_icon_space = 0
+
+  scrollbar = true
+  scrollbar_width = 8
+  scrollbar_thumb = "slider_*.png"
+}
+
+# обратный отсчёт («21s») справа внизу
++ progress_bar {
+  id = "__timeout__"
+  text = "@TIMEOUT_NOTIFICATION_SHORT@"
+  left = 90%
+  top = 90%
+  width = 10%
+  height = 20
+  text_color = "#ff0000"
+  bar_style = "*"
+  highlight_style = "*"
+}
+
+# строка горячих клавиш (версия Ventoy выводится через ventoy_left/top в ventoy.json)
++ hbox {
+  left = 5%+235
+  top = 95%
+  width = 70%
+  height = 25
+  + label { text = "@VTOY_HOTKEY_TIP@" color = "#9ec5ff" align = "left" }
+}
+
+# служебные индикаторы режимов Ventoy — над полоской горячих клавиш
++ hbox {
+  left = 10%
+  top = 95%-50
+  width = 10%
+  height = 25
+  + label { text = "@VTOY_ISO_RAW@" color = "red" align = "left" }
+}
++ hbox {
+  left = 10%+200
+  top = 95%-50
+  width = 10%
+  height = 25
+  + label { text = "@VTOY_GRUB2_MODE@" color = "red" align = "left" }
+}
++ hbox {
+  left = 10%+400
+  top = 95%-50
+  width = 10%
+  height = 25
+  + label { text = "@VTOY_WIMBOOT_MODE@" color = "red" align = "left" }
+}
++ hbox {
+  left = 10%+600
+  top = 95%-50
+  width = 10%
+  height = 25
+  + label { text = "@VTOY_MEM_DISK@" color = "red" align = "left" }
+}
++ hbox {
+  left = 90%
+  top = 55
+  width = 10%
+  height = 25
+  + label { text = "@VTOY_ISO_UEFI_DRV@" color = "red" align = "left" }
+}
