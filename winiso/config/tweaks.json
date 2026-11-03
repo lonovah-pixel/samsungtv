@@ -1,0 +1,131 @@
+{
+  "_readme": "Консервативные настройки реестра, применяемые к образу офлайн через reg.exe load. hive: DefaultUser = профиль по умолчанию (C:\\Users\\Default\\NTUSER.DAT, действует на пользователей, созданных после установки); Software = HKLM\\SOFTWARE. Каждый пункт — значение, которое меняется штатным переключателем в «Параметрах» или документированной групповой политикой. Откат: C:\\ProgramData\\WinIsoDeploy\\Undo-Tweaks.ps1 в установленной системе или поле undo.",
+  "forbidden_paths": [
+    "SOFTWARE\\Policies\\Microsoft\\Windows Defender",
+    "SOFTWARE\\Microsoft\\Windows Defender",
+    "SYSTEM\\CurrentControlSet\\Services\\WinDefend",
+    "SYSTEM\\CurrentControlSet\\Services\\mpssvc",
+    "SYSTEM\\CurrentControlSet\\Services\\SharedAccess",
+    "SOFTWARE\\Policies\\Microsoft\\WindowsFirewall",
+    "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System",
+    "SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate",
+    "SYSTEM\\CurrentControlSet\\Services\\wuauserv",
+    "SYSTEM\\CurrentControlSet\\Services\\UsoSvc",
+    "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management",
+    "SYSTEM\\Setup\\LabConfig",
+    "SYSTEM\\Setup\\MoSetup",
+    "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\SystemRestore",
+    "SOFTWARE\\Policies\\Microsoft\\Windows NT\\SystemRestore"
+  ],
+  "_forbidden_paths": "Защита от случайных правок: Defender, брандмауэр, UAC, Windows Update, файл подкачки, обход требований (LabConfig/MoSetup), восстановление системы. Скрипт отклонит любой твик с таким путём.",
+  "tweaks": [
+    {
+      "id": "cdm-silent-installed-apps",
+      "enabled": true,
+      "hive": "DefaultUser",
+      "path": "Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+      "name": "SilentInstalledAppsEnabled",
+      "type": "REG_DWORD",
+      "value": 0,
+      "purpose": "Не устанавливать автоматически продвигаемые приложения и игры из Store для новых пользователей.",
+      "side_effect": "Нет. Store и обновления приложений работают как обычно.",
+      "undo": "Удалить значение или установить 1 в HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager."
+    },
+    {
+      "id": "cdm-start-suggestions",
+      "enabled": true,
+      "hive": "DefaultUser",
+      "path": "Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+      "name": "SystemPaneSuggestionsEnabled",
+      "type": "REG_DWORD",
+      "value": 0,
+      "purpose": "Отключить рекламные предложения приложений в меню «Пуск».",
+      "side_effect": "Нет.",
+      "undo": "Параметры → Персонализация → Пуск, или установить значение 1."
+    },
+    {
+      "id": "cdm-tips",
+      "enabled": true,
+      "hive": "DefaultUser",
+      "path": "Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+      "name": "SubscribedContent-338389Enabled",
+      "type": "REG_DWORD",
+      "value": 0,
+      "purpose": "Переключатель «Получать советы и рекомендации при использовании Windows».",
+      "side_effect": "Не показываются всплывающие советы.",
+      "undo": "Параметры → Система → Уведомления → Дополнительные параметры, или значение 1."
+    },
+    {
+      "id": "cdm-welcome-experience",
+      "enabled": true,
+      "hive": "DefaultUser",
+      "path": "Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+      "name": "SubscribedContent-310093Enabled",
+      "type": "REG_DWORD",
+      "value": 0,
+      "purpose": "Переключатель «Показывать экран приветствия Windows после обновлений и при входе».",
+      "side_effect": "После крупных обновлений не показывается экран «Что нового».",
+      "undo": "Параметры → Система → Уведомления → Дополнительные параметры, или значение 1."
+    },
+    {
+      "id": "cdm-settings-suggestions",
+      "enabled": true,
+      "hive": "DefaultUser",
+      "path": "Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+      "name": "SubscribedContent-338393Enabled",
+      "type": "REG_DWORD",
+      "value": 0,
+      "purpose": "Переключатель «Показывать рекомендуемое содержимое в приложении Параметры».",
+      "side_effect": "Нет.",
+      "undo": "Параметры → Конфиденциальность и защита → Общие, или значение 1."
+    },
+    {
+      "id": "start-iris-recommendations",
+      "enabled": true,
+      "hive": "DefaultUser",
+      "path": "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+      "name": "Start_IrisRecommendations",
+      "type": "REG_DWORD",
+      "value": 0,
+      "purpose": "Windows 11: переключатель «Показывать рекомендации с советами, ярлыками, новыми приложениями» в «Пуске».",
+      "side_effect": "В разделе «Рекомендуем» меньше рекламных пунктов; недавние файлы остаются.",
+      "undo": "Параметры → Персонализация → Пуск, или значение 1."
+    },
+    {
+      "id": "policy-advertising-id",
+      "enabled": true,
+      "hive": "Software",
+      "path": "Policies\\Microsoft\\Windows\\AdvertisingInfo",
+      "name": "DisabledByGroupPolicy",
+      "type": "REG_DWORD",
+      "value": 1,
+      "purpose": "Групповая политика «Отключить идентификатор рекламы» (Конфигурация компьютера → Административные шаблоны → Система → Профили пользователей).",
+      "side_effect": "Приложения не получают рекламный ID; персонализированная реклама в приложениях недоступна. Переключатель в Параметрах станет недоступным.",
+      "undo": "Удалить значение HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\AdvertisingInfo\\DisabledByGroupPolicy."
+    },
+    {
+      "id": "policy-consumer-features",
+      "enabled": true,
+      "hive": "Software",
+      "path": "Policies\\Microsoft\\Windows\\CloudContent",
+      "name": "DisableWindowsConsumerFeatures",
+      "type": "REG_DWORD",
+      "value": 1,
+      "purpose": "Политика «Выключить возможности потребителя Майкрософт» — не ставить рекомендованные сторонние приложения.",
+      "side_effect": "Официально действует только на Enterprise/Education; на Home/Pro игнорируется (вреда нет).",
+      "undo": "Удалить значение HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\CloudContent\\DisableWindowsConsumerFeatures."
+    },
+    {
+      "id": "default-user-onedrive-setup",
+      "enabled": false,
+      "hive": "DefaultUser",
+      "path": "Software\\Microsoft\\Windows\\CurrentVersion\\Run",
+      "name": "OneDriveSetup",
+      "type": "DELETE",
+      "value": null,
+      "purpose": "Не запускать установку OneDrive для каждого нового пользователя.",
+      "side_effect": "OneDrive не будет установлен автоматически (резервирование папок в облако выключено до ручной установки). Выключено по умолчанию.",
+      "undo": "winget install --id Microsoft.OneDrive --source winget"
+    }
+  ]
+}

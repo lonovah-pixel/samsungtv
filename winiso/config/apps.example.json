@@ -1,0 +1,76 @@
+{
+  "_readme": "ПРИМЕРЫ формата (не ваш список). method: offline — установщик лежит в образе и ставится без интернета; winget — ставится из сети при первом входе. stage: setupcomplete — от SYSTEM в конце установки Windows до первого входа (только машинные установщики); firstlogon — при первом входе администратора (повышенные права), нужен для winget и программ в контексте пользователя. SHA-256 указываются после первой загрузки: scripts\\Get-Installers.ps1 -Pin.",
+  "apps": [
+    {
+      "id": "vcredist-x64",
+      "name": "Microsoft Visual C++ 2015-2022 Redistributable (x64)",
+      "enabled": true,
+      "method": "offline",
+      "stage": "setupcomplete",
+      "order": 10,
+      "depends_on": [],
+      "offline": {
+        "url": "https://aka.ms/vs/17/release/vc_redist.x64.exe",
+        "file": "vc_redist.x64.exe",
+        "type": "exe",
+        "args": "/install /quiet /norestart",
+        "sha256": null,
+        "expected_signer": "CN=Microsoft Corporation"
+      },
+      "detect": { "type": "uninstall_displayname", "pattern": "^Microsoft Visual C\\+\\+ (2015-20\\d\\d|v14) .*x64" },
+      "success_codes": [0, 1638],
+      "reboot_codes": [3010, 1641],
+      "license": "Распространение разрешено лицензией Visual C++ Redistributable.",
+      "fallback_winget_id": "Microsoft.VCRedist.2015+.x64"
+    },
+    {
+      "id": "firefox",
+      "name": "Mozilla Firefox (MSI, ru)",
+      "enabled": true,
+      "method": "offline",
+      "stage": "setupcomplete",
+      "order": 20,
+      "depends_on": [],
+      "offline": {
+        "url": "https://download.mozilla.org/?product=firefox-msi-latest-ssl&os=win64&lang=ru",
+        "file": "Firefox-ru-x64.msi",
+        "type": "msi",
+        "args": "/qn /norestart",
+        "sha256": null,
+        "expected_signer": "CN=Mozilla Corporation"
+      },
+      "detect": { "type": "uninstall_displayname", "pattern": "^Mozilla Firefox" },
+      "success_codes": [0],
+      "reboot_codes": [3010, 1641],
+      "license": "MPL 2.0, распространение разрешено.",
+      "fallback_winget_id": "Mozilla.Firefox.ru"
+    },
+    {
+      "id": "vlc",
+      "name": "VLC media player",
+      "enabled": true,
+      "method": "winget",
+      "stage": "firstlogon",
+      "order": 30,
+      "depends_on": [],
+      "winget": { "id": "VideoLAN.VLC", "source": "winget", "scope": "machine", "version": null },
+      "detect": { "type": "winget" },
+      "success_codes": [0],
+      "reboot_codes": [],
+      "license": "Загружается из сети при первом входе."
+    },
+    {
+      "id": "notepadplusplus",
+      "name": "Notepad++",
+      "enabled": true,
+      "method": "winget",
+      "stage": "firstlogon",
+      "order": 40,
+      "depends_on": [],
+      "winget": { "id": "Notepad++.Notepad++", "source": "winget", "scope": "machine", "version": null },
+      "detect": { "type": "winget" },
+      "success_codes": [0],
+      "reboot_codes": []
+    }
+  ]
+}

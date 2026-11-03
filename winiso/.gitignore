@@ -1,0 +1,6 @@
+*.iso
+*.wim
+*.esd
+cache/
+ventoy-backups/
+logs/

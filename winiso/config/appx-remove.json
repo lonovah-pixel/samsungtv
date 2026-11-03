@@ -1,0 +1,161 @@
+{
+  "_readme": "Удаление ПРЕДУСТАНОВЛЕННЫХ (provisioned) приложений из образа через DISM Remove-AppxProvisionedPackage. Пакет не ставится новым пользователям; все приложения можно вернуть из Microsoft Store. Сопоставление по точному DisplayName пакета. Отсутствующие в образе пакеты пропускаются.",
+  "protected": [
+    "Microsoft.WindowsStore",
+    "Microsoft.StorePurchaseApp",
+    "Microsoft.DesktopAppInstaller",
+    "Microsoft.SecHealthUI",
+    "Microsoft.VCLibs.*",
+    "Microsoft.UI.Xaml.*",
+    "Microsoft.NET.Native.*",
+    "Microsoft.WindowsAppRuntime.*",
+    "Microsoft.Services.Store.Engagement",
+    "Microsoft.WindowsTerminal",
+    "Microsoft.WindowsNotepad",
+    "Microsoft.Paint",
+    "Microsoft.WindowsCalculator",
+    "Microsoft.Windows.Photos",
+    "Microsoft.ScreenSketch",
+    "Microsoft.HEIFImageExtension",
+    "Microsoft.HEVCVideoExtension",
+    "Microsoft.WebpImageExtension",
+    "Microsoft.VP9VideoExtensions",
+    "Microsoft.AV1VideoExtension",
+    "Microsoft.RawImageExtension",
+    "Microsoft.WebMediaExtensions",
+    "Microsoft.MPEG2VideoExtension",
+    "Microsoft.ApplicationCompatibilityEnhancements",
+    "MicrosoftWindows.Client.WebExperience",
+    "MicrosoftWindows.CrossDevice",
+    "Microsoft.Winget.Source"
+  ],
+  "_protected": "Store, App Installer (winget), Безопасность Windows, фреймворки и базовые инструменты. Скрипт откажется удалять пакет из этого списка, даже если он указан в user_extra_appx_remove.",
+  "remove": [
+    {
+      "name": "Microsoft.BingNews",
+      "enabled": true,
+      "purpose": "Приложение «Новости»: рекламно-новостная лента.",
+      "side_effect": "Нет приложения «Новости».",
+      "undo": "Microsoft Store → «Microsoft Новости» или: winget install --id 9WZDNCRFHVFW --source msstore"
+    },
+    {
+      "name": "Microsoft.BingWeather",
+      "enabled": true,
+      "purpose": "Приложение «Погода».",
+      "side_effect": "Нет приложения «Погода» (виджет погоды на панели задач не затрагивается).",
+      "undo": "winget install --id 9WZDNCRFJ3Q2 --source msstore"
+    },
+    {
+      "name": "Microsoft.BingSearch",
+      "enabled": true,
+      "purpose": "Отдельное приложение Bing Search.",
+      "side_effect": "Поиск Windows работает; пропадает только отдельное приложение Bing.",
+      "undo": "Microsoft Store → «Bing Search»."
+    },
+    {
+      "name": "Microsoft.GetHelp",
+      "enabled": true,
+      "purpose": "Приложение «Техническая поддержка».",
+      "side_effect": "Ссылки «Получить помощь» в некоторых окнах будут предлагать установить приложение.",
+      "undo": "winget install --id 9PKDZBMV1H3T --source msstore"
+    },
+    {
+      "name": "Microsoft.Getstarted",
+      "enabled": true,
+      "purpose": "Приложение «Советы».",
+      "side_effect": "Нет встроенных советов по Windows.",
+      "undo": "Microsoft Store → «Советы Microsoft»."
+    },
+    {
+      "name": "Microsoft.MicrosoftSolitaireCollection",
+      "enabled": true,
+      "purpose": "Игры Solitaire с рекламой.",
+      "side_effect": "Нет игр Solitaire.",
+      "undo": "winget install --id 9WZDNCRFHWD2 --source msstore"
+    },
+    {
+      "name": "Microsoft.MicrosoftOfficeHub",
+      "enabled": true,
+      "purpose": "Приложение Microsoft 365 (Office) — оболочка-витрина, не сам Office.",
+      "side_effect": "Нет ярлыка-витрины Microsoft 365. На установленный Office не влияет.",
+      "undo": "winget install --id 9WZDNCRD29V9 --source msstore"
+    },
+    {
+      "name": "Microsoft.WindowsFeedbackHub",
+      "enabled": true,
+      "purpose": "Центр отзывов.",
+      "side_effect": "Нельзя отправлять отзывы в Microsoft через приложение; диагностика Windows не меняется.",
+      "undo": "winget install --id 9NBLGGH4R32N --source msstore"
+    },
+    {
+      "name": "Microsoft.Todos",
+      "enabled": true,
+      "purpose": "Microsoft To Do.",
+      "side_effect": "Нет приложения To Do.",
+      "undo": "winget install --id 9NBLGGH5R558 --source msstore"
+    },
+    {
+      "name": "Microsoft.PowerAutomateDesktop",
+      "enabled": true,
+      "purpose": "Power Automate для рабочего стола.",
+      "side_effect": "Нет Power Automate (если нужен для автоматизации — отключите этот пункт).",
+      "undo": "winget install --id Microsoft.PowerAutomateDesktop --source winget"
+    },
+    {
+      "name": "Clipchamp.Clipchamp",
+      "enabled": true,
+      "purpose": "Видеоредактор Clipchamp.",
+      "side_effect": "Нет встроенного видеоредактора.",
+      "undo": "winget install --id 9P1J8S7CCWWT --source msstore"
+    },
+    {
+      "name": "MicrosoftCorporationII.MicrosoftFamily",
+      "enabled": true,
+      "purpose": "Microsoft Family Safety.",
+      "side_effect": "Нет приложения родительского контроля (настройки семьи в учётной записи работают).",
+      "undo": "Microsoft Store → «Microsoft Family Safety»."
+    },
+    {
+      "name": "MSTeams",
+      "enabled": true,
+      "purpose": "Новый Teams (личный), автозапуск при входе.",
+      "side_effect": "Нет Teams и его автозапуска. Если нужен рабочий Teams — отключите пункт или поставьте Teams из apps.json.",
+      "undo": "winget install --id Microsoft.Teams --source winget"
+    },
+    {
+      "name": "Microsoft.549981C3F5F10",
+      "enabled": true,
+      "purpose": "Cortana (устаревшее приложение, есть в старых образах).",
+      "side_effect": "Нет Cortana.",
+      "undo": "Microsoft Store → «Cortana»."
+    },
+    {
+      "name": "Microsoft.GamingApp",
+      "enabled": false,
+      "purpose": "Приложение Xbox.",
+      "side_effect": "Нет приложения Xbox / Game Pass. Выключено по умолчанию: нужно для части игр.",
+      "undo": "winget install --id 9MV0B5HZVK9Z --source msstore"
+    },
+    {
+      "name": "Microsoft.XboxGamingOverlay",
+      "enabled": false,
+      "purpose": "Игровая панель Xbox Game Bar (Win+G).",
+      "side_effect": "Нет записи экрана Win+G и игровых оверлеев. Выключено по умолчанию.",
+      "undo": "winget install --id 9NZKPSTSNW4P --source msstore"
+    },
+    {
+      "name": "Microsoft.WindowsMaps",
+      "enabled": false,
+      "purpose": "Приложение «Карты» (в новых сборках уже удалено Microsoft).",
+      "side_effect": "Нет офлайн-карт.",
+      "undo": "Microsoft Store → «Карты Windows»."
+    },
+    {
+      "name": "Microsoft.OutlookForWindows",
+      "enabled": false,
+      "purpose": "Новый Outlook.",
+      "side_effect": "Нет почтового клиента по умолчанию. Выключено: удалять только если почта не нужна.",
+      "undo": "winget install --id 9NRX63209R7B --source msstore"
+    }
+  ]
+}
